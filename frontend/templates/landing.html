@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}CREDISYSTEM — Crédito, más cerca que nunca{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dollar-deco{ position:absolute; font-family:'Sora', sans-serif; font-weight:700; color: rgba(11,19,48,0.06); pointer-events:none; z-index:0; user-select:none; }
+  .hero{ min-height: 92vh; display:flex; align-items:center; padding: 130px 5vw 60px; position: relative; z-index:1; }
+  .hero-grid{ display:grid; grid-template-columns: 1.05fr 0.95fr; gap: 40px; align-items:center; width:100%; }
+  .eyebrow{ display:inline-flex; align-items:center; gap:8px; font-size: 0.82rem; font-weight:500; color: var(--blue); border: 1px solid rgba(47,92,240,0.18); background: var(--blue-soft); padding: 7px 16px; border-radius: 100px; width: fit-content; opacity:0; animation: rise .8s var(--ease) .1s forwards; }
+  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background: var(--blue); animation: pulse 2s ease-in-out infinite; }
+  h1.hero-title{ font-family: 'Sora', sans-serif; font-weight: 800; font-size: clamp(2.6rem, 5vw, 4rem); line-height: 1.06; letter-spacing: -0.02em; margin: 26px 0 22px; }
+  h1.hero-title .line{ display:block; overflow:hidden; }
+  h1.hero-title .line span{ display:block; opacity:0; transform: translateY(110%); animation: rise-text .9s var(--ease) forwards; }
+  h1.hero-title .line:nth-child(1) span{ animation-delay: .15s; color: var(--text); }
+  h1.hero-title .line:nth-child(2) span{ animation-delay: .28s; }
+  h1.hero-title .line:nth-child(3) span{ animation-delay: .38s; }
+  h1.hero-title .blue-text{ background: linear-gradient(90deg, var(--blue), var(--blue-deep)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .hero-sub{ max-width: 46ch; color: var(--text-muted); font-size: 1.08rem; line-height: 1.65; opacity:0; animation: rise .8s var(--ease) .55s forwards; }
+  .hero-actions{ display:flex; gap:16px; margin-top: 34px; opacity:0; animation: rise .8s var(--ease) .7s forwards; }
+  @keyframes rise-text{ to{ opacity:1; transform: translateY(0);} }
+  @keyframes pulse{ 0%,100%{ opacity:1;} 50%{ opacity:.3;} }
+  @keyframes float{ 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-12px);} }
+  @keyframes fillbar{ to{ width: var(--fill, 68%); } }
+
+  .hero-visual{ position: relative; opacity: 0; animation: rise .9s var(--ease) .4s forwards; }
+  .account-card{ background: var(--bg-panel); border-radius: 22px; border: 1px solid var(--border); box-shadow: 0 30px 70px -20px rgba(11,19,48,0.18); padding: 30px; position: relative; animation: float 7s ease-in-out infinite; }
+  .account-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 22px; }
+  .account-top .welcome{ font-size:0.86rem; color: var(--text-muted); display:flex; align-items:center; gap:6px;}
+  .account-top h3{ font-family:'Sora', sans-serif; font-size:1.3rem; font-weight:700; margin-top:4px;}
+  .mini-stats{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0;}
+  .mini-stat{ border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+  .mini-stat span{ font-size:0.74rem; color: var(--text-muted); display:block; margin-bottom:4px;}
+  .mini-stat b{ font-size:0.92rem; font-weight:600;}
+  .avail-label{ display:flex; justify-content:space-between; font-size:0.78rem; color: var(--text-muted); margin-bottom:8px;}
+  .avail-bar{ height:6px; border-radius:100px; background: var(--blue-soft); overflow:hidden; margin-bottom:22px;}
+  .avail-fill{ height:100%; width:0%; border-radius:100px; background: linear-gradient(90deg, var(--blue), var(--cyan)); animation: fillbar 1.6s var(--ease) 1s forwards; }
+  .account-card .btn-solid{ width:100%; }
+  .float-badge{ position: absolute; top: -16px; right: -18px; background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; display:flex; align-items:center; gap:10px; box-shadow: 0 16px 40px rgba(11,19,48,0.14); animation: float 6s ease-in-out infinite reverse; }
+  .float-badge .ic{ width:30px; height:30px; border-radius:50%; background: var(--green-soft); display:flex; align-items:center; justify-content:center; color: var(--green); font-size: 0.9rem;}
+  .float-badge b{ display:block; font-size: 0.82rem; color: var(--text);}
+  .float-badge span{ font-size: 0.68rem; color: var(--text-muted);}
+
+  section.land{ padding: 110px 5vw; position:relative; z-index:1; }
+  .section-head{ max-width: 640px; margin-bottom: 56px; }
+  .kicker{ font-size:0.82rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color: var(--blue); margin-bottom:14px; display:block;}
+  .section-head h2{ font-family:'Sora', sans-serif; font-weight:700; font-size: clamp(1.8rem, 3vw, 2.6rem); line-height:1.18; letter-spacing:-0.01em;}
+  .section-head p{ color: var(--text-muted); margin-top:16px; font-size:1.02rem; line-height:1.6; max-width: 54ch;}
+
+  .feature-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .feature{ background: var(--bg-panel); border:1px solid var(--border); border-radius: var(--radius); padding: 32px 28px; transition: transform .4s var(--ease), box-shadow .4s var(--ease), border-color .4s var(--ease); }
+  .feature:hover{ transform: translateY(-6px); box-shadow: 0 20px 50px rgba(11,19,48,0.08); border-color: rgba(47,92,240,0.25);}
+  .feature-icon{ width:44px; height:44px; border-radius:12px; background: var(--blue-soft); display:flex; align-items:center; justify-content:center; color: var(--blue); font-size:1.15rem; margin-bottom: 18px; transition: transform .4s var(--ease), background .4s var(--ease), color .4s var(--ease); }
+  .feature:hover .feature-icon{ transform: translateY(-4px) rotate(-4deg); background: var(--blue); color:#fff;}
+  .feature h3{ font-family:'Sora', sans-serif; font-weight:700; font-size:1.18rem; margin-bottom: 10px;}
+  .feature p{ color: var(--text-muted); font-size:0.92rem; line-height:1.6;}
+
+  .steps{ display:flex; flex-direction:column; gap:0; }
+  .step{ display:grid; grid-template-columns: 90px 1fr; gap: 24px; padding: 30px 0; border-top: 1px solid var(--border); align-items:start; }
+  .step:last-child{ border-bottom: 1px solid var(--border); }
+  .step-ic{ width: 56px; height:56px; border-radius: 14px; background: var(--blue-soft); color: var(--blue); display:flex; align-items:center; justify-content:center; transition: transform .45s var(--ease), background .4s var(--ease), color .4s var(--ease); }
+  .step:hover .step-ic{ transform: translateY(-4px) rotate(-6deg) scale(1.06); background: var(--blue); color:#fff; }
+  .step h4{ font-size:1.1rem; font-weight:700; margin-bottom:8px;}
+  .step p{ color: var(--text-muted); font-size:0.92rem; max-width:60ch; line-height:1.6;}
+
+  .stats-band{ padding: 70px 6vw; position:relative; z-index:1; display:grid; grid-template-columns: repeat(4, 1fr); gap: 30px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .stat-item{ text-align:left; }
+  .stat-num{ font-family:'Sora', sans-serif; font-weight:800; font-size: clamp(2.1rem, 3.4vw, 2.9rem); letter-spacing:-0.02em; line-height:1; background: linear-gradient(120deg, var(--navy), var(--blue-deep)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .stat-label{ margin-top:10px; color: var(--text-muted); font-size:0.9rem; max-width:22ch; line-height:1.5;}
+
+  .plan-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 22px; align-items:stretch; }
+  .plan-card{ background: var(--bg-panel); border:1px solid var(--border); border-radius: var(--radius); padding: 34px 30px; display:flex; flex-direction:column; transition: transform .4s var(--ease), box-shadow .4s var(--ease); }
+  .plan-card:hover{ transform: translateY(-6px); box-shadow: 0 20px 50px rgba(11,19,48,0.08); }
+  .plan-card.highlight{ border-color: rgba(47,92,240,0.35); background: linear-gradient(180deg, #fff 0%, var(--blue-soft) 130%); box-shadow: 0 24px 60px rgba(47,92,240,0.14); }
+  .plan-name{ font-family:'Sora', sans-serif; font-weight:700; font-size:1.05rem; margin-bottom:6px;}
+  .plan-tag{ font-size:0.82rem; color: var(--text-muted); margin-bottom: 22px; }
+  .plan-amount{ font-family:'Sora', sans-serif; font-weight:800; font-size:1.9rem; letter-spacing:-0.01em;}
+  .plan-amount span{ font-family:'IBM Plex Sans', sans-serif; font-weight:500; font-size:0.78rem; color: var(--text-muted); display:block; margin-top:2px;}
+  .plan-details{ list-style:none; margin: 24px 0 28px; display:flex; flex-direction:column; gap:12px; flex-grow:1;}
+  .plan-details li{ font-size:0.9rem; color: var(--text); display:flex; align-items:flex-start; gap:10px; line-height:1.5;}
+  .plan-details li svg{ flex-shrink:0; margin-top:3px; color: var(--blue);}
+  .plan-card .btn{ justify-content:center; width:100%; }
+
+  .testimonial-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
+  .testimonial-card{ background: var(--bg-panel); border:1px solid var(--border); border-radius: var(--radius); padding: 34px 32px; }
+  .testimonial-quote{ font-size:1.06rem; line-height:1.65; color: var(--text); margin-bottom: 26px; }
+  .testimonial-person{ display:flex; align-items:center; gap:14px; }
+  .testimonial-avatar{ width:42px; height:42px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg, var(--blue-bright), var(--blue-deep)); color:#fff; font-family:'Sora', sans-serif; font-weight:700; font-size:0.92rem; }
+  .testimonial-person b{ display:block; font-size:0.92rem; font-weight:600;}
+  .testimonial-person span{ font-size:0.8rem; color: var(--text-muted); }
+
+  .resource-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .resource-card{ border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 26px; background: var(--bg-panel); display:flex; flex-direction:column; gap: 14px; transition: transform .4s var(--ease), box-shadow .4s var(--ease); }
+  .resource-card:hover{ transform: translateY(-6px); box-shadow: 0 20px 50px rgba(11,19,48,0.08); }
+  .resource-tag{ font-size:0.76rem; font-weight:600; color: var(--blue); }
+  .resource-card h4{ font-family:'Sora', sans-serif; font-weight:700; font-size:1.06rem; line-height:1.4;}
+  .resource-card p{ color: var(--text-muted); font-size:0.9rem; line-height:1.6; flex-grow:1;}
+  .resource-date{ font-size:0.78rem; color: var(--text-muted); }
+
+  .cta-band{ border-radius: 24px; background: linear-gradient(135deg, var(--navy), var(--navy-soft)); color:#fff; padding: 70px 6vw; text-align:center; position:relative; overflow:hidden; margin: 0 5vw; }
+  .cta-band::before{ content:''; position:absolute; width:500px; height:500px; border-radius:50%; background: radial-gradient(circle, rgba(47,92,240,0.35), transparent 65%); top:-200px; right:-150px; }
+  .cta-band h2{ color:#fff; position:relative; z-index:1; font-family:'Sora',sans-serif; font-weight:700; font-size: clamp(1.8rem, 3vw, 2.6rem);}
+  .cta-band p{ color: rgba(255,255,255,0.7); margin: 18px auto 34px; max-width: 50ch; position:relative; z-index:1; }
+  .cta-band .btn{ position:relative; z-index:1; }
+
+  @media (max-width: 980px){ .hero-grid{ grid-template-columns: 1fr; } .hero-visual{ margin-top: 40px; max-width: 480px; } .feature-grid{ grid-template-columns: 1fr; } .dollar-deco{ display:none; } .stats-band{ grid-template-columns: repeat(2, 1fr); } .plan-grid{ grid-template-columns: 1fr; } .testimonial-grid{ grid-template-columns: 1fr; } .resource-grid{ grid-template-columns: 1fr; } }
+  @media (max-width: 720px){ .hero{ padding: 108px 6vw 50px; min-height: unset; } section.land{ padding: 80px 6vw; } .hero-actions{ flex-wrap:wrap; } .hero-actions .btn{ width:100%; justify-content:center; } .step{ grid-template-columns: 56px 1fr; gap:16px; padding: 24px 0; } .cta-band{ padding: 50px 6vw; margin: 0 6vw; } }
+  @media (max-width: 480px){ .hero-title{ font-size: clamp(2.1rem, 9vw, 2.6rem); } .stats-band{ grid-template-columns: 1fr 1fr; gap:20px; padding: 50px 6vw; } }
+</style>
+{% endblock %}
+
+{% block nav %}
+<nav class="navlinks">
+  <a href="#" class="active">Inicio</a>
+  <a href="#planes">Créditos</a>
+  <a href="#como-funciona">Cómo funciona</a>
+  
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="dollar-deco" style="top:22%; left:32%; font-size:2.4rem;">$</div>
+<div class="dollar-deco" style="top:14%; right:4%; font-size:3rem;">$</div>
+<div class="dollar-deco" style="bottom:8%; left:48%; font-size:2.2rem;">$</div>
+
+<section class="hero">
+  <div class="hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow"><span class="dot"></span> Créditos rápidos, simples y seguros</span>
+      <h1 class="hero-title">
+        <span class="line"><span>Tu crédito,</span></span>
+        <span class="line"><span class="blue-text">más cerca</span></span>
+        <span class="line"><span class="blue-text">que nunca.</span></span>
+      </h1>
+      <p class="hero-sub">Solicitá tu crédito online de forma rápida, segura y sin complicaciones. Conocé tu disponibilidad y empezá hoy mismo.</p>
+      <div class="hero-actions">
+        <a href="{% url 'registro' %}" class="btn btn-solid">Solicitar crédito →</a>
+        <a href="#como-funciona" class="btn btn-ghost">Cómo funciona</a>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="account-card">
+        <div class="float-badge">
+          <div class="ic">✓</div>
+          <div><span style="font-size:0.68rem;color:var(--text-muted);">Tu solicitud está</span><b>Pre-aprobada</b></div>
+        </div>
+        <div class="account-top">
+          <div>
+            <div class="welcome">Bienvenido 👋</div>
+            <h3>Jorge Mondelo</h3>
+          </div>
+        </div>
+        <div class="balance-panel">
+          <div class="label">Crédito disponible</div>
+          <div class="amount">$850.000</div>
+          <div class="sub">Disponible para solicitar</div>
+        </div>
+        <div class="mini-stats">
+          <div class="mini-stat"><span>Estado</span><b>Pre-aprobado</b></div>
+          <div class="mini-stat"><span>Plazo</span><b>Hasta 24 cuotas</b></div>
+        </div>
+        <div class="avail-label"><span>Disponibilidad</span></div>
+        <div class="avail-bar"><div class="avail-fill"></div></div>
+        <a href="{% url 'registro' %}" class="btn btn-solid">Ver mi crédito</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<section class="land" id="como-funciona">
+  <div class="section-head reveal">
+    <span class="kicker">Cómo funciona</span>
+    <h2>Cuatro pasos, sin vueltas.</h2>
+  </div>
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/></svg></div>
+      <div><h4>Simulá tu crédito</h4><p>Ingresá el monto y plazo deseado. Te mostramos la cuota exacta antes de pedir nada.</p></div>
+    </div>
+    <div class="step reveal">
+      <div class="step-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg></div>
+      <div><h4>Solicitá en línea</h4><p>Completá tu solicitud con validación de documentación en tiempo real.</p></div>
+    </div>
+    <div class="step reveal">
+      <div class="step-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8.5 12.5 2.5 2.5 5-5"/></svg></div>
+      <div><h4>Recibí la aprobación</h4><p>Pre-calificación automática. Sin esperas innecesarias, sin planillas físicas.</p></div>
+    </div>
+    <div class="step reveal">
+      <div class="step-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 11h20"/><circle cx="7" cy="15.5" r="1"/></svg></div>
+      <div><h4>Gestioná tus pagos</h4><p>Seguí tu historial, pagá cuotas y recibí recordatorios desde un solo panel.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="land" id="planes">
+  <div class="section-head reveal">
+    <span class="kicker">Líneas de crédito</span>
+    <h2>Elegí el crédito que se ajusta a tu momento.</h2>
+    <p>Montos y plazos flexibles, con la cuota siempre a la vista antes de confirmar nada.</p>
+  </div>
+  <div class="plan-grid">
+    <div class="plan-card reveal">
+      <div class="plan-name">Crédito Personal</div>
+      <div class="plan-tag">Para gastos, viajes o imprevistos</div>
+      <div class="plan-amount">$50.000 – $850.000<span>Monto disponible según tu perfil</span></div>
+      <ul class="plan-details">
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Plazos de 6 a 24 cuotas</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Acreditación en menos de 48hs</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Sin costo por otorgamiento</li>
+      </ul>
+      <a href="{% url 'simular_credito' %}?tipo=personal&monto=850000&plazo=24" class="btn btn-ghost btn-simular-landing" data-tipo="personal" data-monto="850000" data-plazo="24">Simular este crédito</a>
+    </div>
+    <div class="plan-card highlight reveal">
+      <div class="plan-name">Crédito Vivienda</div>
+      <div class="plan-tag">Para mejoras, ampliaciones o mudanza</div>
+      <div class="plan-amount">$300.000 – $3.000.000<span>El más elegido por nuestros clientes</span></div>
+      <ul class="plan-details">
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Plazos de 12 a 48 cuotas</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Tasa preferencial por monto</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Asesor asignado durante todo el proceso</li>
+      </ul>
+      <a href="{% url 'simular_credito' %}?tipo=vivienda&monto=3000000&plazo=48" class="btn btn-solid btn-simular-landing" data-tipo="vivienda" data-monto="3000000" data-plazo="48">Simular este crédito</a>
+    </div>
+    <div class="plan-card reveal">
+      <div class="plan-name">Refinanciación</div>
+      <div class="plan-tag">Para unificar deudas en una sola cuota</div>
+      <div class="plan-amount">Hasta $1.200.000<span>Según deuda a refinanciar</span></div>
+      <ul class="plan-details">
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Plazos de 12 a 36 cuotas</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Una cuota en vez de varias</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Evaluación de tu deuda actual sin cargo</li>
+      </ul>
+      <a href="{% url 'simular_credito' %}?tipo=refinanciacion&monto=1200000&plazo=36" class="btn btn-ghost btn-simular-landing" data-tipo="refinanciacion" data-monto="1200000" data-plazo="36">Simular este crédito</a>
+    </div>
+  </div>
+</section>
+
+<div class="stats-band reveal">
+  <div class="stat-item"><div class="stat-num">96%</div><div class="stat-label">Tasa de pre-aprobación sobre solicitudes completadas</div></div>
+  <div class="stat-item"><div class="stat-num">12hs</div><div class="stat-label">Tiempo promedio de acreditación del crédito</div></div>
+  <div class="stat-item"><div class="stat-num">+132K</div><div class="stat-label">Créditos otorgados desde el inicio de la plataforma</div></div>
+  <div class="stat-item"><div class="stat-num">4.9/5</div><div class="stat-label">Calificación promedio de nuestros clientes</div></div>
+</div>
+
+<section class="land" id="testimonios">
+  <div class="section-head reveal">
+    <span class="kicker">Testimonios</span>
+    <h2>Lo que dicen quienes ya solicitaron.</h2>
+  </div>
+  <div class="testimonial-grid">
+    <div class="testimonial-card reveal">
+      <p class="testimonial-quote">"Simulé el crédito una noche, lo pedí al otro día y a las 2 horas ya tenía la plata. Nunca tuve que ir a una sucursal."</p>
+      <div class="testimonial-person"><div class="testimonial-avatar">RS</div><div><b>Rocio Suarez</b><span>Crédito Personal · Rosario</span></div></div>
+    </div>
+    <div class="testimonial-card reveal">
+      <p class="testimonial-quote">"Tenía tres deudas separadas y las junté en una sola cuota mensual. La diferencia en el orden de mis finanzas fue inmediata."</p>
+      <div class="testimonial-person"><div class="testimonial-avatar">CA</div><div><b>Celeste Camia</b><span>Refinanciación · Rosario</span></div></div>
+    </div>
+  </div>
+</section>
+
+
+
+<section class="land">
+  <div class="cta-band reveal">
+    <h2>¿Listo para simular tu crédito?</h2>
+    <p>Sin compromiso, sin costo. Obtené tu cuota estimada en menos de tres minutos.</p>
+    <a href="{% url 'registro' %}" class="btn btn-solid">Empezar simulación →</a>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const visual = document.querySelector('.hero-visual');
+  window.addEventListener('mousemove', (e) => {
+    if (!visual || window.innerWidth < 980) return;
+    const x = (e.clientX / window.innerWidth - 0.5) * 10;
+    const y = (e.clientY / window.innerHeight - 0.5) * 10;
+    visual.style.transform = `translate(${x}px, ${y}px)`;
+  });
+</script>
+
+<script>
+  document.querySelectorAll('.btn-simular-landing').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const simulacion = {
+        tipo: btn.dataset.tipo,
+        monto: Number(btn.dataset.monto),
+        plazo: Number(btn.dataset.plazo)
+      };
+      localStorage.setItem('credisystem_simulacion_pendiente', JSON.stringify(simulacion));
+      const destino = "{% url 'simular_credito' %}?tipo=" + encodeURIComponent(simulacion.tipo) + "&monto=" + simulacion.monto + "&plazo=" + simulacion.plazo;
+      if (API.isLoggedIn()) {
+        window.location.href = destino;
+      } else {
+        window.location.href = "{% url 'login' %}?next=" + encodeURIComponent(destino);
+      }
+    });
+  });
+</script>
+{% endblock %}

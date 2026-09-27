@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Mis solicitudes — CREDISYSTEM{% endblock %}
+{% block content %}
+<div class="app-shell wide">
+  <div class="page-head"><span class="kicker">Seguimiento</span><h1>Mis solicitudes</h1><p>Consultá el estado y el detalle de todas tus solicitudes de crédito.</p></div>
+  <div class="alert alert-error" id="alertaError" style="display:none;"></div>
+  <div class="panel">
+    <div class="panel-head"><h2 id="contadorSolicitudes">Solicitudes</h2><a href="{% url 'solicitar_credito' %}" class="btn btn-solid btn-sm">Nueva solicitud</a></div>
+    <div id="tablaWrap"><div class="skeleton" style="height:60px;margin-bottom:10px;"></div><div class="skeleton" style="height:60px;"></div></div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+requireAuth();
+function estadoSolicitudBadge(estado){const e=(estado||'').toLowerCase();if(e==='aprobada')return'green';if(e==='rechazada')return'red';return'gray';}
+function textoEstadoSolicitud(estado){return({aprobada:'Aprobada',rechazada:'Rechazada',en_revision:'En revisión'})[estado]||estado||'—';}
+(async()=>{try{const solicitudes=await API.solicitudesCredito();document.getElementById('contadorSolicitudes').textContent=`Solicitudes (${solicitudes.length})`;const wrap=document.getElementById('tablaWrap');if(!solicitudes.length){wrap.innerHTML='<div class="empty-state"><p>Todavía no realizaste solicitudes de crédito.</p></div>';return;}wrap.innerHTML=`<table class="list-table"><thead><tr><th>Solicitud</th><th>Fecha</th><th>Monto</th><th>Plazo</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>${solicitudes.map(s=>`<tr class="clickable" onclick="window.location.href='/solicitudes/${s.id_solicitud}/'"><td>#${s.id_solicitud}</td><td>${new Date(s.fecha_solicitud).toLocaleString('es-AR')}</td><td>${formatoARS(s.monto_solicitado)}</td><td>${s.plazo_meses} meses</td><td><span class="badge badge-${estadoSolicitudBadge(s.estado)}">${textoEstadoSolicitud(s.estado)}</span></td><td>${s.estado==='rechazada'?(s.motivo_rechazo||'Ver motivo'):'Ver detalle'}</td></tr>`).join('')}</tbody></table>`;}catch(err){mostrarErrorEnAlerta('alertaError',err);document.getElementById('tablaWrap').innerHTML='<div class="empty-state"><p>No pudimos cargar tus solicitudes.</p></div>';}})();
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Mis créditos — CREDISYSTEM{% endblock %}
+{% block content %}
+<div class="app-shell wide"><div class="page-head"><span class="kicker">Tu historial</span><h1>Mis créditos</h1><p>Todos los créditos que tenés otorgados y su estado actual.</p></div><div class="alert alert-error" id="alertaError" style="display:none;"></div><div class="panel"><div class="panel-head"><h2 id="contadorCreditos">Créditos</h2><a href="{% url 'solicitar_credito' %}" class="btn btn-solid btn-sm">Solicitar nuevo crédito</a></div><div id="tablaWrap"><div class="skeleton" style="height:60px;margin-bottom:10px;"></div><div class="skeleton" style="height:60px;margin-bottom:10px;"></div></div></div></div>
+{% endblock %}
+{% block extra_js %}
+<script>
+requireAuth();function estadoABadge(estado){const e=(estado||'').toLowerCase();if(e==='activo')return'green';if(e==='en_mora')return'red';return'gray';}
+(async()=>{try{const creditos=await API.misCreditos();document.getElementById('contadorCreditos').textContent=`Créditos (${creditos.length})`;const wrap=document.getElementById('tablaWrap');if(!creditos.length){wrap.innerHTML='<div class="empty-state"><p>Todavía no tenés créditos otorgados.</p></div>';return;}wrap.innerHTML=`<table class="list-table"><thead><tr><th>Crédito</th><th>Monto original</th><th>Saldo pendiente</th><th>Plazo</th><th>Otorgado</th><th>Estado</th></tr></thead><tbody>${creditos.map(c=>`<tr class="clickable" onclick="window.location.href='/creditos/${c.id_credito}/'"><td>#${c.id_credito}</td><td>${formatoARS(c.monto_original)}</td><td>${formatoARS(c.saldo_pendiente)}</td><td>${c.plazo_meses} meses</td><td>${c.fecha_otorgamiento?new Date(c.fecha_otorgamiento).toLocaleDateString('es-AR'):'—'}</td><td><span class="badge badge-${estadoABadge(c.estado)}">${c.estado||'—'}</span></td></tr>`).join('')}</tbody></table>`;}catch(err){mostrarErrorEnAlerta('alertaError',err);document.getElementById('tablaWrap').innerHTML='<div class="empty-state"><p>No pudimos cargar tus créditos.</p></div>';}})();
+</script>
+{% endblock %}

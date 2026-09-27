@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Verificá tu email — CREDISYSTEM{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card" style="text-align:center;">
+    <span class="eyebrow" style="justify-content:center;">Un paso más</span>
+    <h1>Verificá tu email</h1>
+    <p class="sub">Te mandamos un código de 6 dígitos por WhatsApp al teléfono registrado. Ingresalo para activar tu cuenta.<br><small>Cuenta: <b id="emailMostrado" style="color:var(--text);">tu email</b></small></p>
+
+    <div class="alert alert-error" id="alertaError" style="display:none; text-align:left;"></div>
+    <div class="alert alert-success" id="alertaExito" style="display:none; text-align:left;"></div>
+
+    <form id="formVerificar" novalidate>
+      <div class="otp-row">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" data-i="0">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" data-i="1">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" data-i="2">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" data-i="3">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" data-i="4">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" data-i="5">
+      </div>
+
+      <button type="submit" class="btn btn-solid btn-block" id="btnVerificar" style="margin-top:20px;">
+        <span id="btnVerificarText">Verificar código</span>
+      </button>
+    </form>
+
+    <div class="auth-foot">
+      <span id="contadorReenvio">Podés reenviar el código en <b id="segundos">60</b>s</span>
+      <button type="button" id="btnReenviar" class="btn btn-ghost btn-sm" style="display:none; margin:12px auto 0;">Reenviar código</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const nextUrl = params.get('next');
+  const email = params.get('email') || '';
+  document.getElementById('emailMostrado').textContent = email || 'tu email';
+
+  // ---- Manejo de los 6 dígitos ----
+  const digitos = Array.from(document.querySelectorAll('.otp-digit'));
+  digitos.forEach((input, idx) => {
+    input.addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 1);
+      if (e.target.value && idx < digitos.length - 1) digitos[idx + 1].focus();
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !e.target.value && idx > 0) digitos[idx - 1].focus();
+    });
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const texto = (e.clipboardData.getData('text') || '').replace(/[^0-9]/g, '').slice(0, 6);
+      texto.split('').forEach((c, i) => { if (digitos[i]) digitos[i].value = c; });
+      if (texto.length === 6) digitos[5].focus();
+    });
+  });
+
+  const form = document.getElementById('formVerificar');
+  const btn = document.getElementById('btnVerificar');
+  const btnText = document.getElementById('btnVerificarText');
+  const alertaError = document.getElementById('alertaError');
+  const alertaExito = document.getElementById('alertaExito');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    alertaError.style.display = 'none';
+    alertaExito.style.display = 'none';
+
+    const codigo = digitos.map(d => d.value).join('');
+    if (codigo.length !== 6) {
+      alertaError.textContent = 'Completá los 6 dígitos del código.';
+      alertaError.style.display = 'flex';
+      return;
+    }
+    if (!email) {
+      alertaError.textContent = 'Falta el email a verificar. Volvé a intentar el registro.';
+      alertaError.style.display = 'flex';
+      return;
+    }
+
+    btn.disabled = true;
+    btnText.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      await API.verificarEmail(email, codigo);
+      alertaExito.textContent = '¡Listo! Tu cuenta fue verificada. Redirigiendo al login…';
+      alertaExito.style.display = 'flex';
+      setTimeout(() => { window.location.href = "{% url 'login' %}" + (nextUrl ? "?next=" + encodeURIComponent(nextUrl) : ""); }, 1400);
+    } catch (err) {
+      if (err.status === 400 || err.status === 401) {
+        alertaError.textContent = 'El código es incorrecto o ya venció. Pedí uno nuevo.';
+      } else {
+        alertaError.textContent = err.message || 'No pudimos verificar el código. Probá de nuevo.';
+      }
+      alertaError.style.display = 'flex';
+      digitos.forEach(d => d.value = '');
+      digitos[0].focus();
+      btn.disabled = false;
+      btnText.textContent = 'Verificar código';
+    }
+  });
+
+  // ---- Contador de reenvío ----
+  let segundos = 60;
+  const spanSegundos = document.getElementById('segundos');
+  const contador = document.getElementById('contadorReenvio');
+  const btnReenviar = document.getElementById('btnReenviar');
+
+  const intervalo = setInterval(() => {
+    segundos--;
+    spanSegundos.textContent = segundos;
+    if (segundos <= 0) {
+      clearInterval(intervalo);
+      contador.style.display = 'none';
+      btnReenviar.style.display = 'inline-flex';
+    }
+  }, 1000);
+
+  btnReenviar.addEventListener('click', async () => {
+    btnReenviar.disabled = true;
+    btnReenviar.textContent = 'Enviando…';
+    try {
+      await API.reenviarCodigo(email);
+      alertaExito.textContent = 'Te reenviamos el código por WhatsApp.';
+      alertaExito.style.display = 'flex';
+      alertaError.style.display = 'none';
+      segundos = 60;
+      contador.style.display = 'inline';
+      btnReenviar.style.display = 'none';
+      spanSegundos.textContent = segundos;
+      const nuevoIntervalo = setInterval(() => {
+        segundos--;
+        spanSegundos.textContent = segundos;
+        if (segundos <= 0) {
+          clearInterval(nuevoIntervalo);
+          contador.style.display = 'none';
+          btnReenviar.style.display = 'inline-flex';
+        }
+      }, 1000);
+    } catch (err) {
+      alertaError.textContent = err.message || 'No pudimos reenviar el código. Probá en un rato.';
+      alertaError.style.display = 'flex';
+    } finally {
+      btnReenviar.disabled = false;
+      btnReenviar.textContent = 'Reenviar código';
+    }
+  });
+
+  digitos[0].focus();
+</script>
+{% endblock %}

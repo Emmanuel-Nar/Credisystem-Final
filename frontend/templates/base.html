@@ -1,0 +1,179 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}CREDISYSTEM{% endblock %}</title>
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/credisystem_v2.css' %}">
+{% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+<div class="grid-overlay"></div>
+<div class="glow-field"></div>
+
+<header class="site-header" id="header">
+  <a href="{% url 'landing' %}" class="brand">
+    <img class="brand-mark" src="{% static 'img/logo.png' %}" alt="Credisystem">
+    CREDI<span class="accent">SYSTEM</span>
+  </a>
+
+  {% block nav %}
+  <nav class="navlinks">
+    <a href="{% url 'landing' %}#producto">Créditos</a>
+    <a href="{% url 'landing' %}#como-funciona">Cómo funciona</a>
+    <a href="{% url 'landing' %}#planes">Líneas de crédito</a>
+    <a href="{% url 'landing' %}#recursos">Recursos</a>
+  </nav>
+  {% endblock %}
+
+  <div class="nav-cta">
+    <div id="navGuest" style="display:flex; align-items:center; gap:22px;">
+      <a href="{% url 'login' %}" class="login-link">
+        Iniciar sesión
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a href="{% url 'registro' %}" class="btn btn-solid">Solicitar crédito</a>
+    </div>
+
+    <div id="navUser" class="user-menu" style="display:none;">
+      <a href="{% url 'notificaciones_web' %}" class="login-link" title="Notificaciones" style="position:relative;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="notifDot" style="display:none; position:absolute; top:-2px; right:-2px; width:8px; height:8px; border-radius:50%; background:var(--red);"></span>
+      </a>
+      <div class="user-chip" id="userChipBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
+        <div class="user-avatar" id="userAvatarInitials">--</div>
+        <span id="userChipName">Mi cuenta</span>
+      </div>
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{% url 'dashboard' %}">Inicio</a>
+        <a href="{% url 'mis_creditos' %}">Mis créditos</a>
+        <a href="{% url 'estado_cuenta' %}">Estado de cuenta</a>
+        <a href="{% url 'mis_solicitudes' %}">Mis solicitudes</a>
+        <a href="{% url 'perfil_web' %}">Perfil y cuenta</a>
+        <button type="button" class="danger" id="logoutBtn">Cerrar sesión</button>
+      </div>
+    </div>
+
+    <button class="hamburger" id="hamburger" aria-label="Abrir menú" aria-controls="mobileMenu" aria-expanded="false"><span></span></button>
+  </div>
+</header>
+
+<div class="menu-backdrop" id="menuBackdrop"></div>
+<nav class="mobile-menu" id="mobileMenu">
+  <a href="{% url 'landing' %}#producto">Créditos</a>
+  <a href="{% url 'landing' %}#como-funciona">Cómo funciona</a>
+  <a href="{% url 'landing' %}#planes">Líneas de crédito</a>
+  <a href="{% url 'landing' %}#recursos">Recursos</a>
+  <div id="navGuestMobile">
+    <a href="{% url 'login' %}">Iniciar sesión</a>
+    <a href="{% url 'registro' %}" class="btn btn-solid">Solicitar crédito</a>
+  </div>
+  <div id="navUserMobile" style="display:none;">
+    <a href="{% url 'dashboard' %}">Inicio</a>
+    <a href="{% url 'mis_creditos' %}">Mis créditos</a>
+    <a href="{% url 'estado_cuenta' %}">Estado de cuenta</a>
+    <a href="{% url 'mis_solicitudes' %}">Mis solicitudes</a>
+    <a href="{% url 'notificaciones_web' %}">Notificaciones</a>
+    <a href="{% url 'perfil_web' %}">Perfil y cuenta</a>
+    <a href="#" id="logoutBtnMobile">Cerrar sesión</a>
+  </div>
+</nav>
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+  <div class="footer-bottom">
+    <span>© 2026 Credisystem</span>
+    <div>
+      <a href="#">Términos</a>
+      <a href="#">Privacidad</a>
+      <a href="#">Centro de ayuda</a>
+    </div>
+  </div>
+</footer>
+
+<script src="{% static 'js/api_v2.js' %}"></script>
+<script>
+  // Header scroll state
+  const header = document.getElementById('header');
+  window.addEventListener('scroll', () => header.classList.toggle('scrolled', window.scrollY > 20));
+
+  // Menú mobile
+  const hamburger = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobileMenu');
+  const menuBackdrop = document.getElementById('menuBackdrop');
+  function toggleMenu(force){
+    const open = force !== undefined ? force : !mobileMenu.classList.contains('open');
+    mobileMenu.classList.toggle('open', open);
+    menuBackdrop.classList.toggle('open', open);
+    hamburger.classList.toggle('open', open);
+    hamburger.setAttribute('aria-expanded', String(open));
+    document.body.style.overflow = open ? 'hidden' : '';
+  }
+  hamburger?.addEventListener('click', () => toggleMenu());
+  menuBackdrop?.addEventListener('click', () => toggleMenu(false));
+  mobileMenu?.querySelectorAll('a').forEach(a => a.addEventListener('click', () => toggleMenu(false)));
+
+  // Estado logueado/invitado en el header
+  function pintarNavSegunSesion(){
+    const logueado = API.isLoggedIn();
+    document.getElementById('navGuest').style.display = logueado ? 'none' : 'flex';
+    document.getElementById('navUser').style.display = logueado ? 'flex' : 'none';
+    document.getElementById('navGuestMobile').style.display = logueado ? 'none' : 'block';
+    document.getElementById('navUserMobile').style.display = logueado ? 'block' : 'none';
+  }
+  pintarNavSegunSesion();
+
+  // Iniciales + nombre en el chip (best-effort, no rompe si /me falla)
+  (async () => {
+    if (!API.isLoggedIn()) return;
+    try {
+      const user = await API.me();
+      const nombre = user.nombre || user.first_name || user.email || 'Mi cuenta';
+      document.getElementById('userChipName').textContent = nombre.split(' ')[0];
+      document.getElementById('userAvatarInitials').textContent = nombre.slice(0,2).toUpperCase();
+    } catch (e) { /* si falla, se queda el placeholder */ }
+    try {
+      const notifs = await API.notificaciones();
+      const noLeidas = Array.isArray(notifs) ? notifs.filter(n => !n.leida).length : (notifs.no_leidas || 0);
+      if (noLeidas > 0) document.getElementById('notifDot').style.display = 'block';
+    } catch (e) { /* silencioso */ }
+  })();
+
+  // Dropdown de usuario
+  const userChipBtn = document.getElementById('userChipBtn');
+  const userDropdown = document.getElementById('userDropdown');
+  function toggleUserDropdown(){
+    const open = !userDropdown.classList.contains('open');
+    userDropdown.classList.toggle('open', open);
+    userChipBtn?.setAttribute('aria-expanded', String(open));
+  }
+  userChipBtn?.addEventListener('click', (e) => { e.stopPropagation(); toggleUserDropdown(); });
+  userChipBtn?.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleUserDropdown(); } });
+  document.addEventListener('click', () => { userDropdown?.classList.remove('open'); userChipBtn?.setAttribute('aria-expanded', 'false'); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { toggleMenu(false); userDropdown?.classList.remove('open'); userChipBtn?.setAttribute('aria-expanded', 'false'); } });
+
+  // Logout
+  document.getElementById('logoutBtn')?.addEventListener('click', () => API.logout());
+  document.getElementById('logoutBtnMobile')?.addEventListener('click', (e) => { e.preventDefault(); API.logout(); });
+
+  // Scroll-reveal genérico para secciones marcadas con .reveal
+  const revealEls = document.querySelectorAll('.reveal');
+  if (revealEls.length) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => { if (entry.isIntersecting){ entry.target.classList.add('in'); io.unobserve(entry.target); } });
+    }, { threshold: 0.15 });
+    revealEls.forEach(el => io.observe(el));
+  }
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

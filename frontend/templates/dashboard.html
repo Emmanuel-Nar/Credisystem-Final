@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Mi cuenta — CREDISYSTEM{% endblock %}
+{% block content %}
+<div class="app-shell wide">
+  <div class="page-head"><span class="kicker">Tu cuenta</span><h1 id="saludoNombre">Hola</h1><p>Este es el resumen de tu situación crediticia hoy.</p></div>
+  <div class="alert alert-error" id="alertaError" style="display:none;"></div>
+  <div class="stat-grid" id="statGrid">
+    <div class="stat-card"><div class="lbl">Estado</div><div class="val skeleton" style="height:28px;width:70%;">&nbsp;</div></div>
+    <div class="stat-card"><div class="lbl">Saldo pendiente</div><div class="val skeleton" style="height:28px;width:70%;">&nbsp;</div></div>
+    <div class="stat-card"><div class="lbl">Próximo vencimiento</div><div class="val skeleton" style="height:28px;width:70%;">&nbsp;</div></div>
+    <div class="stat-card"><div class="lbl">Créditos activos</div><div class="val skeleton" style="height:28px;width:70%;">&nbsp;</div></div>
+  </div>
+  <div class="dashboard-main-grid">
+    <div class="panel"><div class="panel-head"><div><h2>Mis créditos</h2><p>Últimos créditos otorgados y su estado.</p></div><a href="{% url 'mis_creditos' %}" class="btn btn-ghost btn-sm">Ver todos</a></div><div id="listaCreditosDashboard"><div class="skeleton" style="height:70px;margin-bottom:14px;"></div><div class="skeleton" style="height:70px;"></div></div></div>
+    <div class="panel"><div class="panel-head"><h2>Accesos rápidos</h2></div><div style="display:flex;flex-direction:column;gap:12px;"><a href="{% url 'simular_credito' %}" class="btn btn-solid btn-block">Simular un crédito</a><a href="{% url 'solicitar_credito' %}" class="btn btn-ghost btn-block">Solicitar crédito</a><a href="{% url 'estado_cuenta' %}" class="btn btn-ghost btn-block">Estado de cuenta</a><a href="{% url 'mis_solicitudes' %}" class="btn btn-ghost btn-block">Mis solicitudes</a><a href="{% url 'notificaciones_web' %}" class="btn btn-ghost btn-block">Ver notificaciones</a><a href="{% url 'perfil_web' %}" class="btn btn-ghost btn-block">Editar mi perfil</a></div></div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+requireAuth();
+function estadoABadge(estado){const e=(estado||'').toLowerCase();if(e==='activo')return'green';if(e==='cancelado')return'gray';if(e==='en_mora')return'red';return'gray';}
+function fechaAR(fecha){return fecha?new Date(fecha).toLocaleDateString('es-AR'):'—';}
+(async()=>{try{const[user,respuestaCreditos]=await Promise.all([API.me(),API.misCreditos()]);const creditos=Array.isArray(respuestaCreditos)?respuestaCreditos:(respuestaCreditos&&Array.isArray(respuestaCreditos.results)?respuestaCreditos.results:[]);const nombre=(user.nombre||'').trim();document.getElementById('saludoNombre').textContent=`Hola, ${nombre||'usuario'}`;const activos=creditos.filter(c=>(c.estado||'').toLowerCase()==='activo');const saldo=activos.reduce((sum,c)=>sum+Number(c.saldo_pendiente||0),0);const proximo=activos.map(c=>c.primer_vencimiento).filter(Boolean).sort()[0]||null;document.getElementById('statGrid').innerHTML=`<div class="stat-card"><div class="lbl">Estado</div><div class="val">${activos.length?'Activo':'Sin crédito activo'}</div></div><div class="stat-card"><div class="lbl">Saldo pendiente</div><div class="val">${formatoARS(saldo)}</div></div><div class="stat-card"><div class="lbl">Próximo vencimiento</div><div class="val" style="font-size:1.1rem;">${fechaAR(proximo)}</div></div><div class="stat-card"><div class="lbl">Créditos activos</div><div class="val">${activos.length}</div></div>`;const cont=document.getElementById('listaCreditosDashboard');if(!creditos.length){cont.innerHTML='<div class="empty-state"><p>Todavía no tenés créditos otorgados.</p></div>';return;}cont.innerHTML=creditos.slice(0,4).map(c=>`<div class="credit-card-item" onclick="window.location.href='/creditos/${c.id_credito}/'"><div><div style="font-weight:600;font-size:.92rem;">Crédito #${c.id_credito} · ${formatoARS(c.monto_original)}</div><div style="font-size:.8rem;color:var(--text-muted);margin-top:3px;">${c.plazo_meses} meses · Saldo ${formatoARS(c.saldo_pendiente)}</div></div><span class="badge badge-${estadoABadge(c.estado)}">${c.estado||'—'}</span></div>`).join('');}catch(err){mostrarErrorEnAlerta('alertaError',err);document.getElementById('statGrid').innerHTML='';document.getElementById('listaCreditosDashboard').innerHTML='<div class="empty-state"><p>No pudimos cargar tu información.</p></div>';}})();
+</script>
+{% endblock %}

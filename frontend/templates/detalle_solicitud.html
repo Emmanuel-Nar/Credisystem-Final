@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Detalle de solicitud — CREDISYSTEM{% endblock %}
+{% block content %}
+<div class="app-shell">
+  <div class="page-head"><span class="kicker">Seguimiento</span><h1 id="tituloSolicitud">Solicitud</h1><p>Información y estado actual de tu solicitud.</p></div>
+  <div class="alert alert-error" id="alertaError" style="display:none;"></div>
+  <div class="panel" id="detalleWrap"><div class="skeleton" style="height:220px;"></div></div>
+  <div style="margin-top:18px;"><a href="{% url 'mis_solicitudes' %}" class="btn btn-ghost">Volver a mis solicitudes</a></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+requireAuth();
+const idSolicitud={{ view.kwargs.id_solicitud }};
+function estadoSolicitudBadge(estado){if(estado==='aprobada')return'green';if(estado==='rechazada')return'red';return'gray';}
+function textoEstadoSolicitud(estado){return({aprobada:'Aprobada',rechazada:'Rechazada',en_revision:'En revisión'})[estado]||estado||'—';}
+(async()=>{try{const s=await API.detalleSolicitud(idSolicitud);document.getElementById('tituloSolicitud').textContent=`Solicitud #${s.id_solicitud}`;const motivo=s.estado==='rechazada'?`<div class="alert alert-error" style="display:block;margin-top:18px;"><strong>Motivo del rechazo:</strong> ${s.motivo_rechazo||'No informado.'}</div>`:'';document.getElementById('detalleWrap').innerHTML=`<div class="panel-head"><div><h2>Estado actual</h2><p>Última información registrada en el sistema.</p></div><span class="badge badge-${estadoSolicitudBadge(s.estado)}">${textoEstadoSolicitud(s.estado)}</span></div><div class="stat-grid"><div class="stat-card"><div class="lbl">Monto solicitado</div><div class="val">${formatoARS(s.monto_solicitado)}</div></div><div class="stat-card"><div class="lbl">Plazo</div><div class="val">${s.plazo_meses} meses</div></div><div class="stat-card"><div class="lbl">Ingresos declarados</div><div class="val">${formatoARS(s.ingresos_mensuales)}</div></div><div class="stat-card"><div class="lbl">Fecha</div><div class="val" style="font-size:1rem;">${new Date(s.fecha_solicitud).toLocaleString('es-AR')}</div></div></div>${motivo}`;}catch(err){mostrarErrorEnAlerta('alertaError',err);document.getElementById('detalleWrap').innerHTML='<div class="empty-state"><p>No pudimos cargar esta solicitud.</p></div>';}})();
+</script>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Simular crédito — CREDISYSTEM{% endblock %}
+{% block content %}
+<div class="app-shell medium"><div class="page-head"><span class="kicker">Simulador</span><h1>Simulá tu crédito</h1><p>Elegí el monto y el plazo. Calculamos una cuota estimada con el sistema francés.</p><div id="creditoSeleccionado" class="badge badge-blue" style="display:none;margin-top:12px;width:fit-content;"></div></div><div class="alert alert-error" id="alertaError" style="display:none;"></div><div class="sim-grid"><div class="panel"><div class="field"><div class="range-row"><span>Monto a solicitar</span><b id="montoLabel"></b></div><input type="range" id="montoRange" min="10000" max="3000000" step="10000" value="300000"></div><div class="field"><div class="range-row"><span>Plazo</span><b id="plazoLabel">12 meses</b></div><input type="range" id="plazoRange" min="1" max="60" step="1" value="12"></div><div class="field"><label for="ingresos">Tus ingresos netos mensuales (opcional)</label><input class="input" type="number" id="ingresos" placeholder="Ej: 800000" min="0"><div class="hint">Se usa solo para mostrar una referencia del 30% de ingresos.</div></div><button class="btn btn-solid btn-block" id="btnSimular"><span id="btnSimularText">Calcular cuota</span></button></div><div class="sim-result"><div style="font-size:.82rem;color:var(--text-muted);margin-bottom:6px;">Cuota mensual estimada</div><div class="cuota-num" id="cuotaResultado">—</div><div id="precalificacionBadge" style="margin:14px 0;"></div><div style="display:flex;flex-direction:column;gap:10px;font-size:.86rem;margin:18px 0;color:var(--text-muted);"><div style="display:flex;justify-content:space-between;"><span>Monto solicitado</span><b id="resMonto" style="color:var(--text);">—</b></div><div style="display:flex;justify-content:space-between;"><span>Plazo</span><b id="resPlazo" style="color:var(--text);">—</b></div><div style="display:flex;justify-content:space-between;"><span>Total estimado</span><b id="resTotal" style="color:var(--text);">—</b></div><div style="display:flex;justify-content:space-between;"><span>Intereses estimados</span><b id="resIntereses" style="color:var(--text);">—</b></div></div><a href="{% url 'solicitar_credito' %}" class="btn btn-solid btn-block">Solicitar este crédito</a></div></div></div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const TASA_ANUAL=0.85;
+const montoRange=document.getElementById('montoRange');
+const plazoRange=document.getElementById('plazoRange');
+const btn=document.getElementById('btnSimular');
+const btnText=document.getElementById('btnSimularText');
+const error=document.getElementById('alertaError');
+const nombresTipo={personal:'Crédito Personal',vivienda:'Crédito Vivienda',refinanciacion:'Refinanciación'};
+
+function cargarSimulacionPendiente(){
+  try{
+    const params=new URLSearchParams(window.location.search);
+    const desdeUrl={
+      tipo:params.get('tipo'),
+      monto:params.get('monto') ? Number(params.get('monto')) : null,
+      plazo:params.get('plazo') ? Number(params.get('plazo')) : null
+    };
+    let seleccion=desdeUrl;
+    if(!seleccion.monto && !seleccion.plazo && !seleccion.tipo){
+      const raw=localStorage.getItem('credisystem_simulacion_pendiente');
+      if(raw) seleccion=JSON.parse(raw);
+    }
+    if(!seleccion)return;
+    if(seleccion.monto){
+      const monto=Math.min(Math.max(Number(seleccion.monto),Number(montoRange.min)),Number(montoRange.max));
+      montoRange.value=monto;
+    }
+    if(seleccion.plazo){
+      const plazo=Math.min(Math.max(Number(seleccion.plazo),Number(plazoRange.min)),Number(plazoRange.max));
+      plazoRange.value=plazo;
+    }
+    if(seleccion.tipo&&nombresTipo[seleccion.tipo]){
+      const etiqueta=document.getElementById('creditoSeleccionado');
+      etiqueta.textContent=nombresTipo[seleccion.tipo]+' seleccionado desde la página principal';
+      etiqueta.style.display='inline-flex';
+    }
+    localStorage.removeItem('credisystem_simulacion_pendiente');
+  }catch(e){console.error('No se pudo recuperar la simulación seleccionada',e);}
+}
+function cuotaLocal(monto,plazo){const i=TASA_ANUAL/12;const c=monto*(i*Math.pow(1+i,plazo))/(Math.pow(1+i,plazo)-1);return{cuota:c,total:c*plazo};}
+function actualizarLabels(){document.getElementById('montoLabel').textContent=formatoARS(montoRange.value);document.getElementById('plazoLabel').textContent=`${plazoRange.value} meses`;}
+async function simular(){
+  error.style.display='none';btn.disabled=true;btnText.innerHTML='<span class="spinner dark"></span>';
+  const monto=Number(montoRange.value),plazo=Number(plazoRange.value),ingresos=Number(document.getElementById('ingresos').value)||0;
+  try{
+    let data=API.isLoggedIn()?await API.simularCredito(monto,plazo):cuotaLocal(monto,plazo);
+    const cuota=Number(data.cuota_estim??data.cuota??0),total=Number(data.total??(cuota*plazo));
+    document.getElementById('cuotaResultado').textContent=formatoARS(cuota);document.getElementById('resMonto').textContent=formatoARS(monto);document.getElementById('resPlazo').textContent=`${plazo} meses`;document.getElementById('resTotal').textContent=formatoARS(total);document.getElementById('resIntereses').textContent=formatoARS(Math.max(total-monto,0));
+    const badge=document.getElementById('precalificacionBadge');badge.innerHTML=ingresos?(cuota/ingresos<=.3?'<span class="badge badge-green">La cuota está dentro del 30% de tus ingresos</span>':'<span class="badge badge-amber">La cuota supera el 30% de tus ingresos</span>'):'';
+  }catch(e){mostrarErrorEnAlerta('alertaError',e);}finally{btn.disabled=false;btnText.textContent='Calcular cuota';}
+}
+cargarSimulacionPendiente();
+montoRange.addEventListener('input',actualizarLabels);plazoRange.addEventListener('input',actualizarLabels);btn.addEventListener('click',simular);actualizarLabels();simular();
+</script>
+{% endblock %}

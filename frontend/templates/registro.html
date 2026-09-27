@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Crear cuenta — CREDISYSTEM{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card" style="max-width:520px;">
+    <span class="eyebrow">Empezá en minutos</span>
+    <h1>Creá tu cuenta</h1>
+    <p class="sub">Con tu cuenta vas a poder simular, solicitar y gestionar tus créditos desde un solo lugar.</p>
+
+    <div class="alert alert-error" id="alertaError" style="display:none;"></div>
+
+    <form id="formRegistro" novalidate>
+      <div class="input-row">
+        <div class="field">
+          <label for="nombre">Nombre</label>
+          <input class="input" type="text" id="nombre" name="nombre" placeholder="Juan" required autocomplete="given-name">
+        </div>
+        <div class="field">
+          <label for="apellido">Apellido</label>
+          <input class="input" type="text" id="apellido" name="apellido" placeholder="Pérez" required autocomplete="family-name">
+        </div>
+      </div>
+      <div class="field">
+        <label for="dni">DNI</label>
+        <input class="input" type="text" id="dni" name="dni" placeholder="30123456" inputmode="numeric" required>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input class="input" type="email" id="email" name="email" placeholder="nombre@mail.com" required autocomplete="email">
+        <div class="field-error" id="errEmail"></div>
+      </div>
+      <div class="field">
+        <label for="telefono">Teléfono</label>
+        <input class="input" type="tel" id="telefono" name="telefono" placeholder="341 555-1234" autocomplete="tel">
+      </div>
+      <div class="input-row">
+        <div class="field">
+          <label for="password">Contraseña</label>
+          <input class="input" type="password" id="password" name="password" placeholder="Mínimo 8 caracteres" required autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="password2">Repetir contraseña</label>
+          <input class="input" type="password" id="password2" name="password2" placeholder="Repetí tu contraseña" required autocomplete="new-password">
+          <div class="field-error" id="errPassword2"></div>
+        </div>
+      </div>
+      <div class="checkbox-row" style="margin-bottom:22px;">
+        <input type="checkbox" id="terminos" required>
+        <label for="terminos">Acepto los <a href="#" style="color:var(--blue);">Términos y condiciones</a> y la <a href="#" style="color:var(--blue);">Política de privacidad</a> de Credisystem.</label>
+      </div>
+      <button type="submit" class="btn btn-solid btn-block" id="btnRegistro">
+        <span id="btnRegistroText">Crear cuenta</span>
+      </button>
+    </form>
+
+    <div class="auth-foot">
+      ¿Ya tenés cuenta? <a href="{% url 'login' %}">Iniciá sesión</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const registroParams = new URLSearchParams(window.location.search);
+  const registroNext = registroParams.get('next');
+  const form = document.getElementById('formRegistro');
+  const btn = document.getElementById('btnRegistro');
+  const btnText = document.getElementById('btnRegistroText');
+  const alertaError = document.getElementById('alertaError');
+
+  function limpiarErrores(){
+    alertaError.style.display = 'none';
+    document.querySelectorAll('.field-error').forEach(el => el.classList.remove('show'));
+    document.querySelectorAll('.input').forEach(el => el.classList.remove('error'));
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    limpiarErrores();
+
+    const payload = {
+      nombre: document.getElementById('nombre').value.trim(),
+      apellido: document.getElementById('apellido').value.trim(),
+      documento: document.getElementById('dni').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      telefono: document.getElementById('telefono').value.trim().replace(/[\s()-]/g, ''),
+      password: document.getElementById('password').value,
+      password2: document.getElementById('password2').value,
+    };
+    const password2 = document.getElementById('password2').value;
+
+    if (payload.password !== password2) {
+      document.getElementById('errPassword2').textContent = 'Las contraseñas no coinciden.';
+      document.getElementById('errPassword2').classList.add('show');
+      document.getElementById('password2').classList.add('error');
+      return;
+    }
+    if (payload.password.length < 8) {
+      document.getElementById('errPassword2').textContent = 'La contraseña tiene que tener al menos 8 caracteres.';
+      document.getElementById('errPassword2').classList.add('show');
+      document.getElementById('password').classList.add('error');
+      return;
+    }
+    if (!document.getElementById('terminos').checked) {
+      alertaError.textContent = 'Tenés que aceptar los términos y condiciones para continuar.';
+      alertaError.style.display = 'flex';
+      return;
+    }
+
+    btn.disabled = true;
+    btnText.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      await API.registro(payload);
+      window.location.href = "{% url 'verificar_email' %}?email=" + encodeURIComponent(payload.email) + (registroNext ? "&next=" + encodeURIComponent(registroNext) : "");
+    } catch (err) {
+      if (err.data && err.data.email) {
+        document.getElementById('errEmail').textContent = Array.isArray(err.data.email) ? err.data.email.join(' ') : err.data.email;
+        document.getElementById('errEmail').classList.add('show');
+        document.getElementById('email').classList.add('error');
+      } else if (err.data && err.data.documento) {
+        alertaError.textContent = Array.isArray(err.data.documento) ? err.data.documento.join(' ') : err.data.documento;
+        alertaError.style.display = 'flex';
+      } else if (err.data && err.data.password2) {
+        document.getElementById('errPassword2').textContent = Array.isArray(err.data.password2) ? err.data.password2.join(' ') : err.data.password2;
+        document.getElementById('errPassword2').classList.add('show');
+        document.getElementById('password2').classList.add('error');
+      } else {
+        alertaError.textContent = err.message || 'No pudimos crear tu cuenta. Revisá los datos e intentá de nuevo.';
+        alertaError.style.display = 'flex';
+      }
+      btn.disabled = false;
+      btnText.textContent = 'Crear cuenta';
+    }
+  });
+
+  if (API.isLoggedIn()) window.location.href = "{% url 'dashboard' %}";
+</script>
+{% endblock %}

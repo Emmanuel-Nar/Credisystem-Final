@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Perfil y cuenta — CREDISYSTEM{% endblock %}
+
+{% block content %}
+<div class="app-shell medium">
+  <div class="page-head">
+    <span class="kicker">Tu cuenta</span>
+    <h1>Perfil y cuenta</h1>
+  </div>
+
+  <div class="profile-header">
+    <div class="profile-avatar" id="avatarIniciales">--</div>
+    <div>
+      <div style="font-family:'Sora',sans-serif; font-weight:700; font-size:1.2rem;" id="nombreCompleto">Cargando…</div>
+      <div style="color:var(--text-muted); font-size:0.9rem;" id="emailUsuario"></div>
+    </div>
+  </div>
+
+  <div class="alert alert-error" id="alertaError" style="display:none;"></div>
+  <div class="alert alert-success" id="alertaExito" style="display:none;"></div>
+
+  <div class="tab-row">
+    <button class="tab-btn active" data-tab="datos">Datos personales</button>
+    <button class="tab-btn" data-tab="seguridad">Seguridad</button>
+  </div>
+
+  <div class="panel" id="tabDatos">
+    <form id="formDatos">
+      <div class="input-row">
+        <div class="field"><label for="nombre">Nombre</label><input class="input" id="nombre" required></div>
+        <div class="field"><label for="apellido">Apellido</label><input class="input" id="apellido" required></div>
+      </div>
+      <div class="field"><label for="email">Email</label><input class="input" id="email" type="email" disabled><small>El email de acceso no se modifica desde el perfil.</small></div>
+      <div class="input-row">
+        <div class="field"><label for="documento">Documento</label><input class="input" id="documento" disabled></div>
+        <div class="field"><label for="telefono">Teléfono</label><input class="input" id="telefono" type="tel" maxlength="30"></div>
+      </div>
+      <div class="field"><label for="direccion">Dirección</label><input class="input" id="direccion" maxlength="200"></div>
+      <button type="submit" class="btn btn-solid" id="btnGuardarDatos">
+        <span id="btnGuardarDatosText">Guardar cambios</span>
+      </button>
+    </form>
+  </div>
+
+  <div class="panel" id="tabSeguridad" style="display:none;">
+    <form id="formPassword">
+      <div class="field"><label for="passwordActual">Contraseña actual</label><input class="input" type="password" id="passwordActual" required></div>
+      <div class="input-row">
+        <div class="field"><label for="passwordNueva">Contraseña nueva</label><input class="input" type="password" id="passwordNueva" required></div>
+        <div class="field"><label for="passwordNueva2">Repetir contraseña nueva</label><input class="input" type="password" id="passwordNueva2" required></div>
+      </div>
+      <button type="submit" class="btn btn-solid" id="btnGuardarPass">
+        <span id="btnGuardarPassText">Actualizar contraseña</span>
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  requireAuth();
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tabDatos').style.display = btn.dataset.tab === 'datos' ? 'block' : 'none';
+      document.getElementById('tabSeguridad').style.display = btn.dataset.tab === 'seguridad' ? 'block' : 'none';
+    });
+  });
+
+  (async () => {
+    try {
+      const user = await API.me();
+      document.getElementById('nombreCompleto').textContent = `${user.nombre || user.first_name || ''} ${user.apellido || user.last_name || ''}`.trim();
+      document.getElementById('emailUsuario').textContent = user.email || '';
+      document.getElementById('avatarIniciales').textContent = ((user.nombre || user.first_name || '?')[0] + (user.apellido || user.last_name || '')[0]).toUpperCase();
+      document.getElementById('nombre').value = user.nombre || user.first_name || '';
+      document.getElementById('apellido').value = user.apellido || user.last_name || '';
+      document.getElementById('email').value = user.email || '';
+      document.getElementById('telefono').value = user.telefono || '';
+      document.getElementById('documento').value = user.documento || '';
+      document.getElementById('direccion').value = user.direccion || '';
+    } catch (err) {
+      mostrarErrorEnAlerta('alertaError', err);
+    }
+  })();
+
+  document.getElementById('formDatos').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const alertaError = document.getElementById('alertaError');
+    const alertaExito = document.getElementById('alertaExito');
+    alertaError.style.display = 'none'; alertaExito.style.display = 'none';
+
+    const btn = document.getElementById('btnGuardarDatos');
+    const btnText = document.getElementById('btnGuardarDatosText');
+    btn.disabled = true; btnText.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      await API.actualizarPerfil({
+        nombre: document.getElementById('nombre').value.trim(),
+        apellido: document.getElementById('apellido').value.trim(),
+        telefono: document.getElementById('telefono').value.trim(),
+        direccion: document.getElementById('direccion').value.trim(),
+      });
+      alertaExito.textContent = 'Tus datos se guardaron correctamente.';
+      alertaExito.style.display = 'flex';
+    } catch (err) {
+      mostrarErrorEnAlerta('alertaError', err);
+    } finally {
+      btn.disabled = false; btnText.textContent = 'Guardar cambios';
+    }
+  });
+
+  document.getElementById('formPassword').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const alertaError = document.getElementById('alertaError');
+    const alertaExito = document.getElementById('alertaExito');
+    alertaError.style.display = 'none'; alertaExito.style.display = 'none';
+
+    const nueva = document.getElementById('passwordNueva').value;
+    const nueva2 = document.getElementById('passwordNueva2').value;
+    if (nueva !== nueva2) {
+      alertaError.textContent = 'Las contraseñas nuevas no coinciden.';
+      alertaError.style.display = 'flex';
+      return;
+    }
+
+    const btn = document.getElementById('btnGuardarPass');
+    const btnText = document.getElementById('btnGuardarPassText');
+    btn.disabled = true; btnText.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      await API.cambiarPassword(document.getElementById('passwordActual').value, nueva, nueva2);
+      alertaExito.textContent = 'Tu contraseña se actualizó correctamente.';
+      alertaExito.style.display = 'flex';
+      document.getElementById('formPassword').reset();
+    } catch (err) {
+      mostrarErrorEnAlerta('alertaError', err);
+    } finally {
+      btn.disabled = false; btnText.textContent = 'Actualizar contraseña';
+    }
+  });
+</script>
+{% endblock %}

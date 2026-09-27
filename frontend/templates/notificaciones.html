@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Notificaciones — CREDISYSTEM{% endblock %}
+{% block content %}
+<div class="app-shell medium"><div class="page-head"><span class="kicker">Novedades</span><h1>Notificaciones</h1><p>Recordatorios, cambios de estado y avisos de la plataforma.</p></div><div class="alert alert-error" id="alertaError" style="display:none;"></div><div class="panel"><div class="panel-head"><h2>Últimas notificaciones</h2><button type="button" class="btn btn-ghost btn-sm" id="btnTodasLeidas">Marcar todas como leídas</button></div><div id="listaNotifs"><div class="skeleton" style="height:56px;margin-bottom:10px;"></div><div class="skeleton" style="height:56px;"></div></div></div></div>
+{% endblock %}
+{% block extra_js %}
+<script>
+requireAuth();function tiempoRelativo(f){if(!f)return'';const d=(Date.now()-new Date(f).getTime())/1000;if(d<60)return'Recién';if(d<3600)return`Hace ${Math.floor(d/60)} min`;if(d<86400)return`Hace ${Math.floor(d/3600)} h`;return`Hace ${Math.floor(d/86400)} días`;}(async()=>{try{const ns=await API.notificaciones();const cont=document.getElementById('listaNotifs');if(!ns.length){cont.innerHTML='<div class="empty-state"><p>No tenés notificaciones todavía.</p></div>';return;}cont.innerHTML=ns.map(n=>`<div class="notif-item ${!n.leida?'unread':''}" data-id="${n.id_notificacion}"><div class="notif-ic">!</div><div style="flex:1;"><h4>${n.tipo||'Notificación'}</h4><p>${n.mensaje||''}</p><div class="when">${tiempoRelativo(n.fecha_envio)}</div></div></div>`).join('');cont.querySelectorAll('.notif-item.unread').forEach(el=>el.addEventListener('click',async()=>{try{await API.marcarNotificacionLeida(el.dataset.id);el.classList.remove('unread');}catch(e){}}));}catch(e){mostrarErrorEnAlerta('alertaError',e);document.getElementById('listaNotifs').innerHTML='<div class="empty-state"><p>No pudimos cargar tus notificaciones.</p></div>';}})();document.getElementById('btnTodasLeidas').addEventListener('click',async()=>{try{await API.marcarTodasLeidas();document.querySelectorAll('.notif-item.unread').forEach(e=>e.classList.remove('unread'));}catch(e){mostrarErrorEnAlerta('alertaError',e);}});
+</script>
+{% endblock %}
