@@ -182,7 +182,16 @@ def consultar_historial_bcra(cuil: str) -> dict:
             data = response.json()
             if data.get("status") == 200 and "results" in data:
                 periodos = data["results"].get("periodos", [])
-                entidades = periodos[0].get("entidades", []) if periodos else []
+                entidades_raw = periodos[0].get("entidades", []) if periodos else []
+                
+                # --- MODIFICACIÓN AQUÍ (API REAL) ---
+                # Recorremos y multiplicamos cada monto por 1000 para pasar de miles a pesos reales
+                entidades = []
+                for ent in entidades_raw:
+                    ent_copy = dict(ent)
+                    ent_copy["monto"] = float(ent.get("monto", 0)) * 1000
+                    entidades.append(ent_copy)
+
                 return {
                     "exito": True,
                     "denominacion": data["results"].get("denominacion", "Titular Registrado"),
@@ -193,18 +202,18 @@ def consultar_historial_bcra(cuil: str) -> dict:
     except Exception as e:
         print(f"Nota: Consulta externa a BCRA derivada a fallback: {e}")
 
-    # Fallback / Simulador seguro si la API externa está restringida o no responde
+    # --- MODIFICACIÓN AQUÍ (FALLBACK / SIMULADOR) ---
+    # Multiplicamos los montos simulados por 1000 (120.5 -> 120500 y 45.0 -> 45000)
     return {
         "exito": True,
         "denominacion": "Usuario de Prueba",
         "periodo": "2026-08",
         "entidades": [
-            {"entidad": "BANCO DE LA NACION ARGENTINA", "situacion": 1, "monto": 120.5},
-            {"entidad": "BANCO GALICIA", "situacion": 1, "monto": 45.0}
+            {"entidad": "BANCO DE LA NACION ARGENTINA", "situacion": 1, "monto": 120500.0},
+            {"entidad": "BANCO GALICIA", "situacion": 1, "monto": 45000.0}
         ],
         "origen": "SIMULADO"
     }
-
 
 def calcular_credit_score(cuil: str, ingresos_declarados: float) -> dict:
     """
