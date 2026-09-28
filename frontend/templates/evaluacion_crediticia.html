@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h2 class="mb-2 fw-bold text-primary">Evaluación Crediticia & Score BCRA</h2>
+            <p class="text-muted mb-4">Ingrese el CUIL/CUIT y los ingresos declarados para consultar la situación en el Banco Central y calcular el perfil de riesgo.</p>
+
+            <!-- Formulario de Consulta -->
+            <div class="card shadow-sm mb-4 border-0">
+                <div class="card-body p-4">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="row align-items-end g-3">
+                            <div class="col-md-5">
+                                <label for="cuil" class="form-label fw-semibold">CUIL / CUIT</label>
+                                <input type="text" class="form-control" id="cuil" name="cuil" placeholder="Ej: 20301234567" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label for="ingresos" class="form-label fw-semibold">Ingresos Mensuales Declarados ($)</label>
+                                <input type="number" step="0.01" class="form-control" id="ingresos" name="ingresos" placeholder="Ej: 600000" required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary w-100 fw-bold">Evaluar</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if resultado %}
+            <div class="row g-4">
+                <!-- Tarjeta del Score e Indicador de Riesgo -->
+                <div class="col-md-6">
+                    <div class="card border-{{ resultado.color }} shadow-sm h-100">
+                        <div class="card-header bg-{{ resultado.color }} text-white font-weight-bold fw-bold">
+                            Nivel de Riesgo: {{ resultado.nivel_riesgo }}
+                        </div>
+                        <div class="card-body text-center d-flex flex-column justify-content-center p-4">
+                            <h1 class="display-2 fw-bold text-{{ resultado.color }} mb-0">{{ resultado.score }}</h1>
+                            <p class="text-muted small">Credit Score (Escala 300 a 850)</p>
+                            <hr class="my-3">
+                            <h6 class="text-muted mb-1">Monto Máximo Pre-Aprobado:</h6>
+                            <h3 class="text-success fw-bold">${{ resultado.monto_maximo_sugerido|floatformat:2 }}</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Desglose de Deudas Registradas en BCRA -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100 border-0">
+                        <div class="card-header bg-dark text-white font-weight-bold fw-bold">
+                            Información Registrada en BCRA
+                        </div>
+                        <div class="card-body p-4">
+                            <p class="mb-2"><strong>Titular:</strong> {{ resultado.detalles_bcra.denominacion }}</p>
+                            <p class="mb-3"><strong>Situación de Riesgo Principal:</strong> 
+                                <span class="badge bg-{% if resultado.peor_situacion_bcra == 1 %}success{% else %}danger{% endif %} fs-6">
+                                    Situación {{ resultado.peor_situacion_bcra }}
+                                </span>
+                            </p>
+                            
+                            <h6 class="fw-bold mt-4 mb-2">Entidades Financieras / Deudas:</h6>
+                            {% if resultado.detalles_bcra.entidades %}
+                                <ul class="list-group list-group-flush border-top">
+                                {% for ent in resultado.detalles_bcra.entidades %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                        <div>
+                                            <strong class="d-block">{{ ent.entidad }}</strong>
+                                            <small class="text-muted">Sit. {{ ent.situacion }}</small>
+                                        </div>
+                                        <span class="badge bg-secondary rounded-pill">${{ ent.monto }}k</span>
+                                    </li>
+                                {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted small">No registra deudas ni morosidad en el sistema financiero.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

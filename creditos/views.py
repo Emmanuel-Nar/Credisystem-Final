@@ -460,3 +460,28 @@ class MarcarTodasLeidasView(APIView):
     def post(self, request):
         actualizadas = Notificacion.objects.filter(id_usuario=request.user, leida=False).update(leida=True)
         return Response({"actualizadas": actualizadas})
+
+
+from .serializers import (
+    # ... tus serializers existentes ...
+    EvaluacionCrediticiaInputSerializer,
+)
+from .services import calcular_credit_score
+
+
+class EvaluacionCrediticiaView(APIView):
+    """
+    Consulta el historial del BCRA y calcula el credit score y 
+    monto pre-aprobado sugerido para un CUIL e ingresos dados.
+    """
+
+    def post(self, request):
+        serializer = EvaluacionCrediticiaInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        cuil = serializer.validated_data["cuil"]
+        ingresos = serializer.validated_data["ingresos"]
+
+        resultado = calcular_credit_score(cuil, float(ingresos))
+
+        return Response(resultado, status=status.HTTP_200_OK)

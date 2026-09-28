@@ -178,3 +178,8 @@ class IniciarPagoSerializer(serializers.Serializer):
 
     monto = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     pago_total = serializers.BooleanField(required=False, default=False)
+
+
+class EvaluacionCrediticiaInputSerializer(serializers.Serializer):
+    cuil = serializers.CharField(max_length=11, min_length=11)
+    ingresos = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
