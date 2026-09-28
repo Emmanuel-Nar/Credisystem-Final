@@ -10,6 +10,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/credisystem_v2.css' %}">
+<style>
+  /* Corrección para el menú hamburguesa en celulares */
+  .mobile-menu {
+    background-color: #ffffff !important; /* Asegura fondo blanco sólido */
+    z-index: 1000 !important;             /* Ubica el menú por encima de la capa gris */
+  }
+
+  .menu-backdrop {
+    z-index: 999 !important;              /* Mantiene la capa oscura detrás del menú */
+  }
+</style>
 {% block extra_css %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -29,6 +40,7 @@
     <a href="{% url 'landing' %}#como-funciona">Cómo funciona</a>
     <a href="{% url 'landing' %}#planes">Líneas de crédito</a>
     <a href="{% url 'landing' %}#recursos">Recursos</a>
+    <a href="{% url 'evaluacion_crediticia' %}">Evaluación BCRA</a>
   </nav>
   {% endblock %}
 
@@ -70,6 +82,7 @@
   <a href="{% url 'landing' %}#como-funciona">Cómo funciona</a>
   <a href="{% url 'landing' %}#planes">Líneas de crédito</a>
   <a href="{% url 'landing' %}#recursos">Recursos</a>
+  <a href="{% url 'evaluacion_crediticia' %}">Evaluación BCRA</a>
   <div id="navGuestMobile">
     <a href="{% url 'login' %}">Iniciar sesión</a>
     <a href="{% url 'registro' %}" class="btn btn-solid">Solicitar crédito</a>
