@@ -10,6 +10,7 @@ urlpatterns = [
     path("verificar/enlace/<str:uidb64>/<str:token>/", views.VerificarEmailEnlaceView.as_view(), name="verificar-email-enlace"),
 
     path("login/", views.LoginView.as_view(), name="login"),
+    path("login-web/", views.LoginWebView.as_view(), name="login-web"),
     path("logout/", views.LogoutView.as_view(), name="logout"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
 

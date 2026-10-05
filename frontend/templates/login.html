@@ -6,11 +6,12 @@
   <div class="auth-card">
     <span class="eyebrow">Bienvenido de nuevo</span>
     <h1>Iniciar sesión</h1>
-    <p class="sub">Ingresá con tu email y contraseña para ver tu crédito y gestionar tus pagos.</p>
+    <p class="sub">Ingresá con tu email y contraseña. Si sos superusuario, accederás al panel de administración.</p>
 
     <div class="alert alert-error" id="alertaError" style="display:none;"></div>
 
     <form id="formLogin" novalidate>
+      {% csrf_token %}
       <div class="field">
         <label for="email">Email</label>
         <input class="input" type="email" id="email" name="email" placeholder="nombre@mail.com" required autocomplete="email">
@@ -39,7 +40,17 @@
 {% block extra_js %}
 <script>
   const params = new URLSearchParams(window.location.search);
-  const nextUrl = params.get('next');
+  function destinoSeguro(valor) {
+    if (!valor) return null;
+    try {
+      const url = new URL(valor, window.location.origin);
+      if (url.origin !== window.location.origin || !['http:', 'https:'].includes(url.protocol)) return null;
+      if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) return null;
+      if (url.pathname === '/login' || url.pathname.startsWith('/login/')) return null;
+      return url.pathname + url.search + url.hash;
+    } catch (e) { return null; }
+  }
+  const nextUrl = destinoSeguro(params.get('next'));
   const linkRegistro = document.getElementById('linkRegistro');
   if (linkRegistro && nextUrl) linkRegistro.href = "{% url 'registro' %}?next=" + encodeURIComponent(nextUrl);
 
@@ -71,7 +82,12 @@
     btnText.innerHTML = '<span class="spinner"></span>';
 
     try {
-      await API.login(email, password);
+      const csrfToken = form.querySelector('[name="csrfmiddlewaretoken"]').value;
+      const respuesta = await API.login(email, password, csrfToken);
+      if (respuesta.admin_url) {
+        window.location.href = respuesta.admin_url;
+        return;
+      }
       const destinoPendiente = localStorage.getItem('credisystem_simulacion_pendiente') ? "{% url 'simular_credito' %}" : null;
       window.location.href = nextUrl || destinoPendiente || "{% url 'dashboard' %}";
     } catch (err) {
@@ -93,6 +109,9 @@
     }
   });
 
-  if (API.isLoggedIn()) window.location.href = "{% url 'dashboard' %}";
+  {% if request.user.is_authenticated and request.user.is_active and request.user.is_staff and request.user.is_superuser %}
+  API.clearTokens();
+  window.location.replace("{% url 'admin:index' %}");
+  {% endif %}
 </script>
 {% endblock %}

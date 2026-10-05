@@ -1,6 +1,9 @@
 from django.conf import settings
 from django.db import transaction
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, login as iniciar_sesion, logout as cerrar_sesion
+from django.urls import reverse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.tokens import default_token_generator
 from django.shortcuts import redirect
 from django.utils.encoding import force_str
@@ -51,13 +54,14 @@ class RegistroView(APIView):
             )
         canal = enviar_codigo_verificacion(usuario, codigo_obj)
 
-        mensaje = (
-            "Cuenta creada. Te enviamos un código de verificación por WhatsApp."
-            if canal == "whatsapp"
-            else "Cuenta creada. No pudimos enviarlo por WhatsApp; el código fue enviado por correo."
-        )
+        mensajes = {
+            "email": "Cuenta creada. Enviamos el código de activación a tu correo. Revisá también Spam.",
+            "whatsapp": "Cuenta creada. Enviamos el código de activación por WhatsApp.",
+            "consola": "Cuenta creada en modo de desarrollo. El código está en la consola del servidor; no se envió un correo real.",
+            "no_enviado": "Tu cuenta fue creada, pero no pudimos enviar el código. Podés solicitar un reenvío sin registrarte otra vez.",
+        }
         return Response(
-            {"detail": mensaje, "canal_verificacion": canal},
+            {"detail": mensajes[canal], "canal_verificacion": canal, "codigo_enviado": canal in {"email", "whatsapp"}},
             status=status.HTTP_201_CREATED,
         )
 
@@ -111,7 +115,7 @@ class ReenviarCodigoView(APIView):
 
         # Respuesta genérica siempre, exista o no la cuenta (anti enumeración)
         return Response(
-            {"detail": "Si el correo corresponde a una cuenta pendiente, reenviamos el código por WhatsApp."},
+            {"detail": "Si hay una cuenta pendiente, se intentó enviar el código por el canal configurado. Si no lo recibís, revisá Spam y volvé a intentarlo."},
             status=status.HTTP_200_OK,
         )
 
@@ -180,11 +184,29 @@ class LoginView(APIView):
             )
 
         registrar_intento(usuario, exito=True, ip=ip)
+        return self.respuesta_login(request, usuario_autenticado)
+
+    def respuesta_login(self, request, usuario_autenticado):
         tokens = _emitir_tokens(usuario_autenticado)
         return Response(
             {**tokens, "usuario": UsuarioPerfilSerializer(usuario_autenticado).data},
             status=status.HTTP_200_OK,
         )
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class LoginWebView(LoginView):
+    """Login del formulario web; solo el superusuario obtiene sesión de admin."""
+
+    authentication_classes = []
+
+    def respuesta_login(self, request, usuario_autenticado):
+        if usuario_autenticado.is_superuser and usuario_autenticado.is_staff:
+            iniciar_sesion(request, usuario_autenticado)
+            return Response({"admin_url": reverse("admin:index")})
+        # Evita conservar la sesión administrativa al cambiar a una cuenta cliente.
+        cerrar_sesion(request)
+        return super().respuesta_login(request, usuario_autenticado)
 
 
 class LogoutView(APIView):
@@ -225,7 +247,7 @@ class SolicitarRecuperacionView(APIView):
 
         # Respuesta genérica siempre (anti enumeración de usuarios)
         return Response(
-            {"detail": "Si el correo existe, te enviamos un código de recuperación."},
+            {"detail": "Si existe una cuenta con ese correo, se intentó enviar el código de recuperación. Si no lo recibís, revisá Spam y volvé a intentarlo."},
             status=status.HTTP_200_OK,
         )
 
@@ -259,7 +281,7 @@ class ConfirmarRecuperacionView(APIView):
 
 
 class PerfilView(APIView):
-    """Ver y editar el perfil del usuario autenticado."""
+    """Consultar el perfil y actualizar solo los datos de contacto del usuario."""
 
     permission_classes = [IsAuthenticated]
 

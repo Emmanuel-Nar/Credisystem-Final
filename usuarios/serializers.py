@@ -163,21 +163,20 @@ class UsuarioPerfilSerializer(serializers.ModelSerializer):
             "notificaciones_push_activas", "push_token",
         ]
         read_only_fields = [
-            "id_usuario", "email", "documento", "estado", "biometria_habilitada",
+            "id_usuario", "nombre", "apellido", "email", "documento", "estado", "biometria_habilitada",
             "fecha_registro", "notificaciones_push_activas", "push_token",
         ]
 
-    def validate_nombre(self, value):
-        value = value.strip()
-        if len(value) < 2:
-            raise serializers.ValidationError("El nombre debe tener al menos 2 caracteres.")
-        return value
-
-    def validate_apellido(self, value):
-        value = value.strip()
-        if len(value) < 2:
-            raise serializers.ValidationError("El apellido debe tener al menos 2 caracteres.")
-        return value
+    def validate(self, attrs):
+        if self.instance is not None:
+            errores = {
+                campo: "Este dato no se modifica desde el perfil. Solicitá su corrección a la administración."
+                for campo in ("nombre", "apellido", "documento", "email")
+                if campo in self.initial_data and self.initial_data[campo] != getattr(self.instance, campo)
+            }
+            if errores:
+                raise serializers.ValidationError(errores)
+        return attrs
 
     def validate_telefono(self, value):
         if not value:

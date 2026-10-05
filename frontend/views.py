@@ -1,8 +1,15 @@
 from django.views.generic import TemplateView
 
+from .asistente import datos_asistente
+
 
 class LandingView(TemplateView):
     template_name = "landing.html"
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["asistente"] = datos_asistente()
+        return contexto
 
 
 class LoginView(TemplateView):
@@ -63,32 +70,3 @@ class RecuperarPasswordView(TemplateView):
 
 class ConfirmarPasswordView(TemplateView):
     template_name = "confirmar_password.html"
-    
-    
-    
-from django.shortcuts import render
-from django.views.generic import TemplateView
-from creditos.services import calcular_credit_score
-
-
-class EvaluacionCrediticiaView(TemplateView):
-    template_name = "evaluacion_crediticia.html"
-
-    def post(self, request, *args, **kwargs):
-        cuil = request.POST.get("cuil", "").strip()
-        ingresos = request.POST.get("ingresos", "0")
-
-        try:
-            ingresos_val = float(ingresos)
-        except ValueError:
-            ingresos_val = 0.0
-
-        resultado = None
-        if cuil and ingresos_val > 0:
-            resultado = calcular_credit_score(cuil, ingresos_val)
-
-        return render(
-            request,
-            self.template_name,
-            {"resultado": resultado, "cuil": cuil, "ingresos": ingresos},
-        )

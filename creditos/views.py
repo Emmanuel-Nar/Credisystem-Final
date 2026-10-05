@@ -3,6 +3,8 @@ from decimal import Decimal
 from uuid import uuid4
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.core.files.storage import default_storage
 from django.http import HttpResponse
 from django.utils import timezone
@@ -33,6 +35,8 @@ from .serializers import (
 from .services import calcular_cuota, crear_cuotas_para_credito, evaluar_solicitud, procesar_pago_aprobado
 from .notificaciones import notificar
 from . import mercadopago_service
+from .bcra import evaluar_bcra
+from .admin_workflow import procesar_estado_solicitud
 
 
 class MisCreditosView(generics.ListAPIView):
@@ -176,67 +180,54 @@ class SolicitarCreditoView(generics.ListAPIView):
         return SolicitudCredito.objects.filter(id_usuario=self.request.user).order_by("-fecha_solicitud")
 
     def post(self, request):
-        entrada = SolicitudCreditoCrearSerializer(data=request.data)
+        entrada = SolicitudCreditoCrearSerializer(data=request.data, context={"request": request})
         entrada.is_valid(raise_exception=True)
         datos = entrada.validated_data
+        existente = SolicitudCredito.objects.filter(id_usuario=request.user, id_envio=datos["id_envio"]).first()
+        if existente:
+            return Response(SolicitudCreditoSerializer(existente).data)
 
-        # Guardar el comprobante de forma segura, con nombre generado
-        # (nunca el nombre original del usuario, para evitar path traversal
-        # o colisiones) y dentro de una carpeta dedicada.
-        archivo = datos["comprobante"]
-        extension = archivo.name.rsplit(".", 1)[-1].lower()
-        nombre_seguro = f"comprobantes/{request.user.id_usuario}_{int(timezone.now().timestamp())}.{extension}"
-        ruta_guardada = default_storage.save(nombre_seguro, archivo)
-
-        estado, motivo_rechazo, cuota = evaluar_solicitud(
+        estado, motivo_rechazo, _ = evaluar_solicitud(
             datos["monto_solicitado"], datos["plazo_meses"], datos["ingresos_mensuales"]
         )
-
-        solicitud = SolicitudCredito.objects.create(
-            id_usuario=request.user,
-            monto_solicitado=datos["monto_solicitado"],
-            plazo_meses=datos["plazo_meses"],
-            ingresos_mensuales=datos["ingresos_mensuales"],
-            estado=estado,
-            motivo_rechazo=motivo_rechazo,
-            comprobantes_url=ruta_guardada,
-        )
-
-        Transaccion.objects.create(
-            id_usuario=request.user,
-            tipo=Transaccion.Tipo.SOLICITUD,
-            descripcion=f"Solicitud de crédito por ${datos['monto_solicitado']}",
-            importe=datos["monto_solicitado"],
-        )
-
+        informe = {"estado": "no_consultado", "motivo": "reglas_locales"}
+        fecha_consulta = None
         if estado == SolicitudCredito.Estado.APROBADA:
-            hoy = timezone.now().date()
-            credito = Credito.objects.create(
-                solicitud=solicitud,
-                id_usuario=request.user,
-                monto_original=datos["monto_solicitado"],
-                saldo_pendiente=datos["monto_solicitado"],
-                tasa_interes_anual=Decimal("85.00"),
-                plazo_meses=datos["plazo_meses"],
-                fecha_otorgamiento=hoy,
-                primer_vencimiento=hoy + timedelta(days=30),
-                estado=Credito.Estado.ACTIVO,
-            )
-            crear_cuotas_para_credito(credito)
-            Transaccion.objects.create(
-                id_usuario=request.user,
-                tipo=Transaccion.Tipo.DESEMBOLSO,
-                descripcion=f"Desembolso del crédito #{credito.id_credito}",
-                importe=credito.monto_original,
-            )
-            mensaje = f"Tu solicitud fue aprobada. Se otorgó el crédito #{credito.id_credito}."
-        elif estado == SolicitudCredito.Estado.RECHAZADA:
-            mensaje = f"Tu solicitud fue rechazada. Motivo: {motivo_rechazo}"
-        else:
-            mensaje = "Tu solicitud quedó en revisión."
+            estado, informe = evaluar_bcra(datos["cuil_cuit"])
+            fecha_consulta = timezone.now()
 
-        notificar(request.user, Notificacion.Tipo.ESTADO_SOLICITUD, mensaje)
-
+        ruta_guardada = None
+        try:
+            with transaction.atomic():
+                # Serializa los envíos de una cuenta y evita duplicados al reintentar.
+                get_user_model().objects.select_for_update().get(pk=request.user.pk)
+                existente = SolicitudCredito.objects.filter(id_usuario=request.user, id_envio=datos["id_envio"]).first()
+                if existente:
+                    return Response(SolicitudCreditoSerializer(existente).data)
+                archivo = datos["comprobante"]
+                extension = archivo.name.rsplit(".", 1)[-1].lower()
+                ruta_guardada = default_storage.save(f"comprobantes/{uuid4().hex}.{extension}", archivo)
+                solicitud = SolicitudCredito.objects.create(
+                    id_usuario=request.user,
+                    monto_solicitado=datos["monto_solicitado"],
+                    plazo_meses=datos["plazo_meses"],
+                    ingresos_mensuales=datos["ingresos_mensuales"],
+                    cuil_cuit=datos["cuil_cuit"], autorizacion_consulta=True,
+                    id_envio=datos["id_envio"], bcra_estado=informe["estado"],
+                    bcra_fecha=fecha_consulta, bcra_informe=informe,
+                    estado=estado, motivo_rechazo=motivo_rechazo,
+                    comprobantes_url=ruta_guardada,
+                )
+                Transaccion.objects.create(
+                    id_usuario=request.user, tipo=Transaccion.Tipo.SOLICITUD,
+                    descripcion=f"Solicitud de crédito #{solicitud.pk}",
+                    importe=datos["monto_solicitado"],
+                )
+                procesar_estado_solicitud(solicitud)
+        except Exception:
+            if ruta_guardada:
+                default_storage.delete(ruta_guardada)
+            raise
         return Response(SolicitudCreditoSerializer(solicitud).data, status=status.HTTP_201_CREATED)
 
 
@@ -460,28 +451,3 @@ class MarcarTodasLeidasView(APIView):
     def post(self, request):
         actualizadas = Notificacion.objects.filter(id_usuario=request.user, leida=False).update(leida=True)
         return Response({"actualizadas": actualizadas})
-
-
-from .serializers import (
-    # ... tus serializers existentes ...
-    EvaluacionCrediticiaInputSerializer,
-)
-from .services import calcular_credit_score
-
-
-class EvaluacionCrediticiaView(APIView):
-    """
-    Consulta el historial del BCRA y calcula el credit score y 
-    monto pre-aprobado sugerido para un CUIL e ingresos dados.
-    """
-
-    def post(self, request):
-        serializer = EvaluacionCrediticiaInputSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        cuil = serializer.validated_data["cuil"]
-        ingresos = serializer.validated_data["ingresos"]
-
-        resultado = calcular_credit_score(cuil, float(ingresos))
-
-        return Response(resultado, status=status.HTTP_200_OK)

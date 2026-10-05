@@ -25,14 +25,15 @@
   </div>
 
   <div class="panel" id="tabDatos">
+    <p id="ayudaIdentidad" class="hint" style="margin-bottom:20px;">Tu nombre, apellido y documento son datos de identidad y no se modifican desde el perfil. Si necesitás corregirlos, comunicate con la administración. Podés actualizar tu teléfono y dirección.</p>
     <form id="formDatos">
       <div class="input-row">
-        <div class="field"><label for="nombre">Nombre</label><input class="input" id="nombre" required></div>
-        <div class="field"><label for="apellido">Apellido</label><input class="input" id="apellido" required></div>
+        <div class="field"><label for="nombre">Nombre</label><input class="input" id="nombre" disabled aria-describedby="ayudaIdentidad"></div>
+        <div class="field"><label for="apellido">Apellido</label><input class="input" id="apellido" disabled aria-describedby="ayudaIdentidad"></div>
       </div>
       <div class="field"><label for="email">Email</label><input class="input" id="email" type="email" disabled><small>El email de acceso no se modifica desde el perfil.</small></div>
       <div class="input-row">
-        <div class="field"><label for="documento">Documento</label><input class="input" id="documento" disabled></div>
+        <div class="field"><label for="documento">Documento</label><input class="input" id="documento" disabled aria-describedby="ayudaIdentidad"></div>
         <div class="field"><label for="telefono">Teléfono</label><input class="input" id="telefono" type="tel" maxlength="30"></div>
       </div>
       <div class="field"><label for="direccion">Dirección</label><input class="input" id="direccion" maxlength="200"></div>
@@ -99,12 +100,10 @@
 
     try {
       await API.actualizarPerfil({
-        nombre: document.getElementById('nombre').value.trim(),
-        apellido: document.getElementById('apellido').value.trim(),
         telefono: document.getElementById('telefono').value.trim(),
         direccion: document.getElementById('direccion').value.trim(),
       });
-      alertaExito.textContent = 'Tus datos se guardaron correctamente.';
+      alertaExito.textContent = 'Tus datos de contacto se guardaron correctamente.';
       alertaExito.style.display = 'flex';
     } catch (err) {
       mostrarErrorEnAlerta('alertaError', err);

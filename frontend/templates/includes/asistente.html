@@ -1,0 +1,30 @@
+{{ asistente|json_script:"asistente-datos" }}
+<button type="button" class="ayuda-lanzador" id="ayuda-abrir" aria-haspopup="dialog" aria-controls="ayuda-dialogo" aria-expanded="false" hidden>
+  <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2V11.5A8.5 8.5 0 0 1 10.5 3h2a8.5 8.5 0 0 1 8.5 8.5Z"/><path d="M7 10h10M7 14h6"/></svg>
+  ¿Necesitás ayuda?
+</button>
+<dialog class="ayuda-dialogo" id="ayuda-dialogo" aria-labelledby="ayuda-titulo" aria-describedby="ayuda-descripcion">
+  <header class="ayuda-cabecera">
+    <div><span class="ayuda-marca">CREDISYSTEM</span><h2 id="ayuda-titulo">Estamos para orientarte</h2></div>
+    <button type="button" class="ayuda-cerrar" id="ayuda-cerrar" aria-label="Cerrar asistente">×</button>
+  </header>
+  <div class="ayuda-cuerpo">
+    <p id="ayuda-descripcion" class="ayuda-descripcion">Elegí una pregunta. Nuestro asistente responde con información general del servicio.</p>
+    <section id="ayuda-menu" aria-label="Preguntas frecuentes">
+      <label for="ayuda-buscar" class="ayuda-etiqueta">Buscar una pregunta</label>
+      <input id="ayuda-buscar" type="search" placeholder="Por ejemplo: cuotas o contraseña" maxlength="100" autocomplete="off" autofocus>
+      <div class="ayuda-preguntas" id="ayuda-preguntas"></div>
+      <p id="ayuda-sin-resultados" class="ayuda-vacio" role="status" hidden>No encontramos esa pregunta. Probá con otra palabra o revisá las opciones disponibles.</p>
+    </section>
+    <section id="ayuda-respuesta" hidden aria-labelledby="ayuda-pregunta-titulo">
+      <button type="button" class="ayuda-volver" id="ayuda-volver">← Volver a las preguntas</button>
+      <h3 id="ayuda-pregunta-titulo" tabindex="-1"></h3>
+      <p id="ayuda-respuesta-texto"></p>
+      <a class="ayuda-accion" id="ayuda-enlace" hidden></a>
+    </section>
+  </div>
+  <footer class="ayuda-pie">
+    <a id="ayuda-whatsapp" class="ayuda-whatsapp" target="_blank" rel="noopener noreferrer" hidden>Hablar con una persona por WhatsApp <span aria-hidden="true">↗</span></a>
+    <p>Para consultar tus datos, <a href="{% url 'login' %}">iniciá sesión</a>.</p>
+  </footer>
+</dialog>

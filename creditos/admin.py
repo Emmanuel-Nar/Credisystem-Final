@@ -1,5 +1,8 @@
+import json
+
 from django import forms
 from django.contrib import admin, messages
+from django.utils.html import format_html
 
 from .admin_workflow import procesar_estado_solicitud
 from .models import (
@@ -91,6 +94,21 @@ class SolicitudCreditoAdmin(admin.ModelAdmin):
     readonly_fields = ("id_usuario", "monto_solicitado", "plazo_meses", "ingresos_mensuales", "fecha_solicitud", "comprobantes_url", "credito_generado")
     fields = ("id_usuario", "monto_solicitado", "plazo_meses", "ingresos_mensuales", "fecha_solicitud", "comprobantes_url", "estado", "motivo_rechazo", "credito_generado")
     inlines = (HistorialSolicitudInline,)
+
+    def get_fields(self, request, obj=None):
+        campos = list(super().get_fields(request, obj))
+        if request.user.is_superuser:
+            campos += ["cuil_cuit", "autorizacion_consulta", "bcra_estado", "bcra_fecha", "informe_bcra_privado"]
+        return campos
+
+    def get_readonly_fields(self, request, obj=None):
+        return tuple(super().get_readonly_fields(request, obj)) + (
+            "cuil_cuit", "autorizacion_consulta", "bcra_estado", "bcra_fecha", "informe_bcra_privado",
+        )
+
+    @admin.display(description="Evaluación BCRA (uso interno)")
+    def informe_bcra_privado(self, obj):
+        return format_html('<pre style="white-space:pre-wrap">{}</pre>', json.dumps(obj.bcra_informe, indent=2, ensure_ascii=False))
 
     def has_delete_permission(self, request, obj=None):
         # Las solicitudes forman parte del historial financiero: solo un

@@ -9,3 +9,4 @@ django-cors-headers==4.4.0
 Pillow==12.3.0
 gunicorn==23.0.0
 whitenoise==6.7.0
+requests==2.34.2

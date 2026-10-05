@@ -13,10 +13,19 @@
 <script>
 requireAuth();
 const fechaCuenta=v=>v?new Date(v+'T00:00:00').toLocaleDateString('es-AR'):'—';
-(async()=>{try{const d=await API.estadoCuenta();
+async function cargarEstadoCuenta(){
+  if (typeof API !== 'undefined' && typeof API.estadoCuenta === 'function') return API.estadoCuenta();
+  const token = (typeof API !== 'undefined' && typeof API.getAccessToken === 'function') ? API.getAccessToken() : localStorage.getItem('credisystem_access');
+  const res = await fetch('/api/creditos/estado-cuenta/', {headers: token ? {'Authorization': `Bearer ${token}`} : {}});
+  if (res.status === 401) { window.location.href='/login/?next='+encodeURIComponent(window.location.pathname); throw new Error('Sesión expirada'); }
+  let data=null; try { data=await res.json(); } catch(e) {}
+  if (!res.ok) throw new Error((data && (data.detail || data.mensaje || data.error)) || 'No se pudo cargar el estado de cuenta.');
+  return data;
+}
+(async()=>{try{const d=await cargarEstadoCuenta();
 document.getElementById('resumen').innerHTML=`<div class="stat-card"><div class="lbl">Saldo pendiente</div><div class="val">${formatoARS(d.saldo_total_pendiente)}</div></div><div class="stat-card"><div class="lbl">Total pagado</div><div class="val">${formatoARS(d.total_pagado)}</div></div><div class="stat-card"><div class="lbl">Próximo vencimiento</div><div class="val" style="font-size:1.1rem">${fechaCuenta(d.proximo_vencimiento)}</div></div><div class="stat-card"><div class="lbl">Cuotas</div><div class="val" style="font-size:1rem">${d.cuotas_pagadas} pagadas · ${d.cuotas_pendientes} pendientes · ${d.cuotas_vencidas} vencidas</div></div>`;
 const c=document.getElementById('creditosCuenta'); c.innerHTML=d.creditos.length?`<table class="list-table"><thead><tr><th>Crédito</th><th>Monto</th><th>Saldo</th><th>Estado</th><th>Próximo vencimiento</th></tr></thead><tbody>${d.creditos.map(x=>`<tr class="clickable" onclick="location.href='/creditos/${x.id_credito}/'"><td>#${x.id_credito}</td><td>${formatoARS(x.monto_original)}</td><td>${formatoARS(x.saldo_pendiente)}</td><td>${x.estado}</td><td>${fechaCuenta(x.proximo_vencimiento)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty-state"><p>No tenés créditos registrados.</p></div>';
-const p=document.getElementById('pagosCuenta'); p.innerHTML=d.pagos.length?`<table class="list-table"><thead><tr><th>Pago</th><th>Crédito</th><th>Fecha</th><th>Monto</th><th>Medio</th><th>Comprobante</th></tr></thead><tbody>${d.pagos.map(x=>`<tr><td>#${x.id_pago}</td><td>#${x.id_credito}</td><td>${new Date(x.fecha_pago).toLocaleDateString('es-AR')}</td><td>${formatoARS(x.monto_pagado)}</td><td>${x.medio_pago||'—'}</td><td><a class=\"btn btn-ghost\" href=\"${API.endpoints.comprobantePago(x.id_pago)}\" target=\"_blank\" rel=\"noopener\">Ver / imprimir</a></td></tr>`).join('')}</tbody></table>`:'<div class="empty-state"><p>Todavía no hay pagos confirmados.</p></div>';
+const p=document.getElementById('pagosCuenta'); p.innerHTML=d.pagos.length?`<table class="list-table"><thead><tr><th>Pago</th><th>Crédito</th><th>Fecha</th><th>Monto</th><th>Medio</th><th>Comprobante</th></tr></thead><tbody>${d.pagos.map(x=>`<tr><td>#${x.id_pago}</td><td>#${x.id_credito}</td><td>${new Date(x.fecha_pago).toLocaleDateString('es-AR')}</td><td>${formatoARS(x.monto_pagado)}</td><td>${x.medio_pago||'—'}</td><td><a class=\"btn btn-ghost\" href=\"/api/creditos/pagos/${x.id_pago}/comprobante/\" target=\"_blank\" rel=\"noopener\">Ver / imprimir</a></td></tr>`).join('')}</tbody></table>`:'<div class="empty-state"><p>Todavía no hay pagos confirmados.</p></div>';
 }catch(err){mostrarErrorEnAlerta('alertaError',err);}})();
 </script>
 {% endblock %}

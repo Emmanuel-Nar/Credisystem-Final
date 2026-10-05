@@ -19,5 +19,4 @@ urlpatterns = [
     path("notificaciones/", views.NotificacionesView.as_view(), name="notificaciones_web"),
     path("recuperar-password/", views.RecuperarPasswordView.as_view(), name="recuperar_password"),
     path("confirmar-password/", views.ConfirmarPasswordView.as_view(), name="confirmar_password"),
-    path("evaluacion-crediticia/", views.EvaluacionCrediticiaView.as_view(), name="evaluacion_crediticia"),
 ]

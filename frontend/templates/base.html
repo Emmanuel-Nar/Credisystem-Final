@@ -9,51 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/credisystem_v2.css' %}">
-<style>
-  /* Fix completo para el menú desplegable en celulares */
-  .mobile-menu {
-    position: fixed !important;
-    top: 0 !important;
-    right: -100% !important; /* Escondido a la derecha */
-    width: 280px !important;
-    max-width: 80vw !important;
-    height: 100vh !important;
-    background-color: #ffffff !important; /* Fondo blanco sólido */
-    z-index: 1000 !important;             /* Por encima del backdrop */
-    display: flex !important;
-    flex-direction: column !important;
-    padding: 80px 24px 24px 24px !important;
-    gap: 16px !important;
-    box-shadow: -4px 0 15px rgba(0,0,0,0.15) !important;
-    transition: right 0.3s ease-in-out !important;
-    overflow-y: auto !important;
-  }
-
-  /* Estado cuando se abre el menú */
-  .mobile-menu.open {
-    right: 0 !important; /* Se desliza a la pantalla */
-  }
-
-  /* Capa de fondo oscuro */
-  .menu-backdrop {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    background-color: rgba(0, 0, 0, 0.5) !important;
-    z-index: 999 !important;
-    display: none !important;
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out;
-  }
-
-  .menu-backdrop.open {
-    display: block !important;
-    opacity: 1 !important;
-  }
-</style>
+<link rel="stylesheet" href="{% static 'css/credisystem_v2.css' %}?v=20261002">
 {% block extra_css %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -73,7 +29,6 @@
     <a href="{% url 'landing' %}#como-funciona">Cómo funciona</a>
     <a href="{% url 'landing' %}#planes">Líneas de crédito</a>
     <a href="{% url 'landing' %}#recursos">Recursos</a>
-    
   </nav>
   {% endblock %}
 
@@ -101,22 +56,20 @@
         <a href="{% url 'estado_cuenta' %}">Estado de cuenta</a>
         <a href="{% url 'mis_solicitudes' %}">Mis solicitudes</a>
         <a href="{% url 'perfil_web' %}">Perfil y cuenta</a>
-        <a href="{% url 'evaluacion_crediticia' %}">Evaluación BCRA</a>
         <button type="button" class="danger" id="logoutBtn">Cerrar sesión</button>
       </div>
     </div>
 
-    <button class="hamburger" id="hamburger" aria-label="Abrir menú" aria-controls="mobileMenu" aria-expanded="false"><span></span></button>
+    <button type="button" class="hamburger" id="hamburger" aria-label="Abrir menú" aria-controls="mobileMenu" aria-expanded="false"><span></span></button>
   </div>
 </header>
 
 <div class="menu-backdrop" id="menuBackdrop"></div>
-<nav class="mobile-menu" id="mobileMenu">
+<nav class="mobile-menu" id="mobileMenu" aria-label="Navegación móvil" inert>
   <a href="{% url 'landing' %}#producto">Créditos</a>
   <a href="{% url 'landing' %}#como-funciona">Cómo funciona</a>
   <a href="{% url 'landing' %}#planes">Líneas de crédito</a>
   <a href="{% url 'landing' %}#recursos">Recursos</a>
-  <a href="{% url 'evaluacion_crediticia' %}">Evaluación BCRA</a>
   <div id="navGuestMobile">
     <a href="{% url 'login' %}">Iniciar sesión</a>
     <a href="{% url 'registro' %}" class="btn btn-solid">Solicitar crédito</a>
@@ -147,7 +100,7 @@
   </div>
 </footer>
 
-<script src="{% static 'js/api_v2.js' %}"></script>
+<script src="{% static 'js/api_v2.js' %}?v=20261002"></script>
 <script>
   // Header scroll state
   const header = document.getElementById('header');
@@ -163,8 +116,13 @@
     menuBackdrop.classList.toggle('open', open);
     hamburger.classList.toggle('open', open);
     hamburger.setAttribute('aria-expanded', String(open));
+    hamburger.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+    mobileMenu.inert = !open;
+    if (!open && mobileMenu.contains(document.activeElement)) hamburger.focus();
     document.body.style.overflow = open ? 'hidden' : '';
   }
+  const mobileViewport = window.matchMedia('(max-width: 980px)');
+  mobileViewport.addEventListener('change', (e) => { if (!e.matches) toggleMenu(false); });
   hamburger?.addEventListener('click', () => toggleMenu());
   menuBackdrop?.addEventListener('click', () => toggleMenu(false));
   mobileMenu?.querySelectorAll('a').forEach(a => a.addEventListener('click', () => toggleMenu(false)));

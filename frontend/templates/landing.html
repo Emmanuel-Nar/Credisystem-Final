@@ -3,6 +3,7 @@
 {% block title %}CREDISYSTEM — Crédito, más cerca que nunca{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/asistente.css' %}?v=20261005">
 <style>
   .dollar-deco{ position:absolute; font-family:'Sora', sans-serif; font-weight:700; color: rgba(11,19,48,0.06); pointer-events:none; z-index:0; user-select:none; }
   .hero{ min-height: 92vh; display:flex; align-items:center; padding: 130px 5vw 60px; position: relative; z-index:1; }
@@ -274,6 +275,10 @@
 {% endblock %}
 
 {% block extra_js %}
+{% if asistente %}
+{% include "includes/asistente.html" %}
+<script src="{% static 'js/asistente.js' %}?v=20261005" defer></script>
+{% endif %}
 <script>
   const visual = document.querySelector('.hero-visual');
   window.addEventListener('mousemove', (e) => {

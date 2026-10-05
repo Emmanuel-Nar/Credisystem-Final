@@ -1,10 +1,39 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Solicitar crédito — CREDISYSTEM{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/solicitud_credito.css' %}?v=20261002">{% endblock %}
 {% block content %}
-<div class="app-shell medium"><div class="page-head"><span class="kicker">Solicitud</span><h1>Solicitá tu crédito</h1><p>Completá los datos y subí tu comprobante de ingresos.</p></div><div class="alert alert-error" id="alertaError" style="display:none;"></div><div class="alert alert-success" id="alertaExito" style="display:none;"></div><form id="formSolicitud" class="panel" novalidate><div class="panel-head"><h2>Datos del crédito</h2></div><div class="input-row"><div class="field"><label for="monto">Monto solicitado</label><input class="input" type="number" id="monto" min="10000" max="3000000" step="10000" placeholder="300000" required></div><div class="field"><label for="plazo">Plazo (meses)</label><input class="input" type="number" id="plazo" min="1" max="60" value="12" required></div></div><div class="field"><label for="ingresos">Ingresos netos mensuales declarados</label><input class="input" type="number" id="ingresos" min="0.01" placeholder="800000" required></div><div class="panel-head" style="margin-top:10px;"><h2>Documentación</h2></div><div class="field"><label>Recibo de sueldo o certificación de ingresos (PDF o imagen)</label><div class="file-drop" id="fileDrop"><input type="file" id="archivoIngresos" accept=".pdf,.jpg,.jpeg,.png" required><div>Arrastrá el archivo acá o hacé clic para elegirlo</div><div class="fname" id="fnameIngresos"></div></div><div class="hint">El DNI ya fue registrado en tu cuenta y no hace falta subirlo nuevamente.</div></div><div class="checkbox-row" style="margin:20px 0;"><input type="checkbox" id="declaracion" required><label for="declaracion">Declaro que los datos e ingresos informados son verídicos y autorizo a Credisystem a verificarlos.</label></div><button type="submit" class="btn btn-solid btn-block" id="btnEnviar"><span id="btnEnviarText">Enviar solicitud</span></button></form></div>
+<div class="app-shell medium">
+  <div class="page-head"><span class="kicker">Solicitud</span><h1>Solicitá tu crédito</h1><p>Completá los datos y subí tu comprobante de ingresos.</p></div>
+  <div class="alert alert-error" id="alertaError" role="alert" style="display:none;"></div>
+  <section id="verificacionSolicitud" class="panel solicitud-estado" role="status" aria-live="polite" hidden>
+    <div class="solicitud-spinner" aria-hidden="true"></div>
+    <h2>Aguardá unos momentos</h2>
+    <p>Estamos verificando tu solicitud.</p>
+    <p class="hint">Mantené esta pantalla abierta mientras procesamos los datos.</p>
+  </section>
+  <section id="resultadoSolicitud" class="panel solicitud-estado" aria-labelledby="resultadoTitulo" hidden>
+    <span id="resultadoEtiqueta" class="kicker"></span>
+    <h2 id="resultadoTitulo" tabindex="-1"></h2>
+    <p id="resultadoMensaje"></p>
+    <a id="resultadoEnlace" class="btn btn-solid" href="{% url 'mis_solicitudes' %}">Ver mis solicitudes</a>
+  </section>
+  <form id="formSolicitud" class="panel">
+    <fieldset id="camposSolicitud" class="solicitud-campos">
+      <div class="panel-head"><h2>1. Datos del crédito</h2></div>
+      <div class="input-row">
+        <div class="field"><label for="monto">Monto solicitado</label><input class="input" type="number" id="monto" min="10000" max="3000000" step="0.01" placeholder="300000" required></div>
+        <div class="field"><label for="plazo">Plazo (meses)</label><input class="input" type="number" id="plazo" min="1" max="60" step="1" value="12" required></div>
+      </div>
+      <div class="field"><label for="ingresos">Ingresos netos mensuales declarados</label><input class="input" type="number" id="ingresos" min="0.01" step="0.01" placeholder="800000" required></div>
+      <div class="field"><label for="cuilCuit">Tu CUIL / CUIT</label><input class="input" type="text" id="cuilCuit" inputmode="numeric" maxlength="13" placeholder="11 dígitos, con o sin guiones" aria-describedby="ayudaCuil" required><div class="hint" id="ayudaCuil">Ingresá el número correspondiente al titular de la solicitud.</div></div>
+      <div class="panel-head"><h2>2. Documentación</h2></div>
+      <div class="field"><label for="archivoIngresos">Recibo de sueldo o certificación de ingresos</label><input class="input" type="file" id="archivoIngresos" accept=".pdf,.jpg,.jpeg,.png" required><div class="hint">PDF, JPG o PNG. Máximo 5 MB.</div></div>
+      <div class="panel-head"><h2>3. Confirmación</h2></div>
+      <div class="checkbox-row solicitud-declaracion"><input type="checkbox" id="declaracion" required><label for="declaracion">Declaro que los datos e ingresos informados son verídicos y autorizo a CREDISYSTEM a consultar mi situación crediticia en el BCRA para evaluar esta solicitud.</label></div>
+      <button type="submit" class="btn btn-solid btn-block" id="btnEnviar">Enviar solicitud</button>
+    </fieldset>
+  </form>
+</div>
 {% endblock %}
-{% block extra_js %}
-<script>
-requireAuth();const drop=document.getElementById('fileDrop'),input=document.getElementById('archivoIngresos'),fname=document.getElementById('fnameIngresos');drop.addEventListener('click',()=>input.click());input.addEventListener('change',()=>fname.textContent=input.files[0]?input.files[0].name:'');['dragover','dragleave','drop'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.toggle('drag',evt==='dragover');if(evt==='drop'&&e.dataTransfer.files[0]){input.files=e.dataTransfer.files;fname.textContent=e.dataTransfer.files[0].name;}}));const form=document.getElementById('formSolicitud'),btn=document.getElementById('btnEnviar'),btnText=document.getElementById('btnEnviarText'),err=document.getElementById('alertaError'),ok=document.getElementById('alertaExito');form.addEventListener('submit',async e=>{e.preventDefault();err.style.display='none';ok.style.display='none';const archivo=input.files[0];if(!archivo){err.textContent='Subí el comprobante de ingresos para continuar.';err.style.display='flex';return;}const monto=Number(document.getElementById('monto').value),plazo=Number(document.getElementById('plazo').value),ingresos=Number(document.getElementById('ingresos').value);if(monto<10000||monto>3000000){err.textContent='El monto debe estar entre $10.000 y $3.000.000.';err.style.display='flex';return;}if(plazo<1||plazo>60){err.textContent='El plazo debe estar entre 1 y 60 meses.';err.style.display='flex';return;}const fd=new FormData();fd.append('monto_solicitado',monto);fd.append('plazo_meses',plazo);fd.append('ingresos_mensuales',ingresos);fd.append('comprobante',archivo);btn.disabled=true;btnText.innerHTML='<span class="spinner"></span>';try{const data=await API.solicitarCredito(fd);ok.textContent=data.estado==='aprobada'?'¡Solicitud aprobada! El crédito ya figura en Mis créditos.':data.estado==='rechazada'?'La solicitud fue rechazada. Revisá el motivo en Mis créditos.':'Recibimos tu solicitud y quedó en revisión.';ok.style.display='flex';setTimeout(()=>window.location.href="{% url 'mis_creditos' %}",1600);}catch(e){mostrarErrorEnAlerta('alertaError',e);btn.disabled=false;btnText.textContent='Enviar solicitud';}});
-</script>
-{% endblock %}
+{% block extra_js %}<script src="{% static 'js/solicitud_credito.js' %}?v=20261002"></script>{% endblock %}

@@ -2,6 +2,9 @@ import os
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.conf import settings
+from django.core.exceptions import ValidationError as DjangoValidationError
+
+from .bcra import PREFIJOS_PERSONA, normalizar_cuil_cuit
 from rest_framework import serializers
 
 from .models import Credito, Cuota, ImputacionPago, Notificacion, Pago, Simulacion, SolicitudCredito, Transaccion
@@ -134,7 +137,26 @@ class SolicitudCreditoCrearSerializer(serializers.Serializer):
     monto_solicitado = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     plazo_meses = serializers.IntegerField(min_value=1)
     ingresos_mensuales = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
+    cuil_cuit = serializers.CharField(max_length=13, write_only=True)
+    autorizacion_consulta = serializers.BooleanField(write_only=True)
+    id_envio = serializers.UUIDField(write_only=True)
     comprobante = serializers.FileField(required=True)
+
+    def validate_cuil_cuit(self, value):
+        try:
+            numero = normalizar_cuil_cuit(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages[0])
+        usuario = self.context["request"].user
+        documento = usuario.documento.replace(".", "").replace("-", "").strip().zfill(8)
+        if numero[:2] in PREFIJOS_PERSONA and documento not in (numero[2:10], numero):
+            raise serializers.ValidationError("El CUIL/CUIT debe corresponder al DNI registrado en tu cuenta.")
+        return numero
+
+    def validate_autorizacion_consulta(self, value):
+        if not value:
+            raise serializers.ValidationError("Debés autorizar la verificación para enviar la solicitud.")
+        return value
 
     def validate_comprobante(self, archivo):
         extension = os.path.splitext(archivo.name)[1].lower()
@@ -178,8 +200,3 @@ class IniciarPagoSerializer(serializers.Serializer):
 
     monto = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     pago_total = serializers.BooleanField(required=False, default=False)
-
-
-class EvaluacionCrediticiaInputSerializer(serializers.Serializer):
-    cuil = serializers.CharField(max_length=11, min_length=11)
-    ingresos = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))

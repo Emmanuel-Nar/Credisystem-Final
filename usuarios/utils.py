@@ -1,10 +1,16 @@
+import logging
+from smtplib import SMTPException
+
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 from .whatsapp import enviar_codigo_whatsapp
+
+logger = logging.getLogger(__name__)
 
 
 def get_client_ip(request):
@@ -21,7 +27,8 @@ def _enlace_token(usuario, ruta):
     return f"{base}{ruta.format(uid=uid, token=token)}"
 
 
-def enviar_codigo_verificacion(usuario, codigo_obj, canal="whatsapp"):
+def enviar_codigo_verificacion(usuario, codigo_obj, canal=None):
+    canal = canal or settings.AUTH_CANAL_VERIFICACION
     if canal == "whatsapp" and usuario.telefono:
         if enviar_codigo_whatsapp(usuario.telefono, codigo_obj.codigo):
             return "whatsapp"
@@ -38,5 +45,18 @@ def enviar_codigo_verificacion(usuario, codigo_obj, canal="whatsapp"):
         f"Vence en {settings.AUTH_CODIGO_EXPIRA_MINUTOS} minutos.\n\n{accion}\n\n"
         "Si no lo solicitaste, ignorá este mensaje."
     )
-    send_mail(asunto, mensaje, from_email=None, recipient_list=[usuario.email], fail_silently=True)
-    return "email"
+    backend = settings.EMAIL_BACKEND
+    consola = backend.endswith("console.EmailBackend")
+    if backend.endswith("dummy.EmailBackend") or (consola and not settings.DEBUG):
+        logger.error("Código no enviado: correo real no configurado.")
+        return "no_enviado"
+    try:
+        enviados = send_mail(asunto, mensaje, from_email=None, recipient_list=[usuario.email], fail_silently=False)
+    except (SMTPException, OSError, ValueError, ImproperlyConfigured) as exc:
+        # No registrar destinatarios, códigos, contraseñas ni el texto del proveedor.
+        logger.error("Código no enviado: %s.", type(exc).__name__)
+        return "no_enviado"
+    if enviados != 1:
+        logger.error("Código no enviado: el backend no confirmó el envío.")
+        return "no_enviado"
+    return "consola" if consola else "email"

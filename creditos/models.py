@@ -163,6 +163,12 @@ class SolicitudCredito(models.Model):
     estado = models.CharField(
         max_length=20, choices=Estado.choices, default=Estado.EN_REVISION
     )
+    cuil_cuit = models.CharField(max_length=11, blank=True, default="")
+    autorizacion_consulta = models.BooleanField(default=False)
+    id_envio = models.UUIDField(null=True, blank=True, editable=False)
+    bcra_estado = models.CharField(max_length=20, default="no_consultado", editable=False)
+    bcra_fecha = models.DateTimeField(null=True, blank=True, editable=False)
+    bcra_informe = models.JSONField(default=dict, blank=True, editable=False)
     fecha_solicitud = models.DateTimeField(auto_now_add=True)
     motivo_rechazo = models.CharField(max_length=255, blank=True, null=True)
     # Ruta a los archivos subidos (comprobantes de ingresos). La validación de
@@ -171,6 +177,7 @@ class SolicitudCredito(models.Model):
 
     class Meta:
         db_table = "solicitud_credito"
+        constraints = [models.UniqueConstraint(fields=["id_usuario", "id_envio"], name="uq_solicitud_usuario_envio")]
         indexes = [models.Index(fields=["id_usuario", "estado"])]
 
     def __str__(self):
@@ -312,7 +319,7 @@ class ImputacionPago(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["pago", "cuota"], name="uq_imputacion_pago_cuota")
         ]
-        indexes = [models.Index(fields=["pago", "cuota"])]
+        indexes = [models.Index(fields=["pago", "cuota"], name="imputacion__pago_id_6dca2e_idx")]
 
     def __str__(self):
         return f"Pago #{self.pago_id} → Cuota #{self.cuota_id}: ${self.monto}"

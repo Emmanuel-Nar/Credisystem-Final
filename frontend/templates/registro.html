@@ -113,8 +113,8 @@
     btnText.innerHTML = '<span class="spinner"></span>';
 
     try {
-      await API.registro(payload);
-      window.location.href = "{% url 'verificar_email' %}?email=" + encodeURIComponent(payload.email) + (registroNext ? "&next=" + encodeURIComponent(registroNext) : "");
+      const respuesta = await API.registro(payload);
+      window.location.href = "{% url 'verificar_email' %}?email=" + encodeURIComponent(payload.email) + "&canal=" + encodeURIComponent(respuesta.canal_verificacion || "email") + (registroNext ? "&next=" + encodeURIComponent(registroNext) : "");
     } catch (err) {
       if (err.data && err.data.email) {
         document.getElementById('errEmail').textContent = Array.isArray(err.data.email) ? err.data.email.join(' ') : err.data.email;

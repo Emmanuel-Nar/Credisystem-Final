@@ -1,3 +1,19 @@
+# Ajuste vigente: asistente de preguntas frecuentes (05/10/2026)
+
+La landing incorpora un asistente con siete preguntas, búsqueda local y respuestas editables por el superusuario. WhatsApp de contacto configurable desde administración. Seguí `LEEME_ASISTENTE_2026-10-05.md`: **esta entrega requiere `python manage.py migrate` y `python manage.py collectstatic --noinput`**. Suite vigente: **132 pruebas aprobadas**.
+
+# Ajuste vigente: envío de códigos con Gmail (05/10/2026)
+
+Configurá tu cuenta mediante `LEEME_GMAIL_2026-10-05.md`. El proyecto lee SMTP desde `.env`, distingue fallos de envío y permite comprobar la configuración con `python manage.py probar_correo`. El envío real queda pendiente de tus credenciales y una prueba de recepción. Se conservan BCRA, perfil protegido, menú y login administrativo.
+
+# Ajuste vigente: identidad protegida en el perfil
+
+Nombre, apellido y DNI no se pueden modificar desde la cuenta del cliente; email sigue protegido. Solo se actualizan teléfono, dirección y, desde Seguridad, la contraseña. Ver `LEEME_PERFIL_2026-10-02.md`. Se mantiene toda la integración BCRA de la entrega anterior.
+
+# Última actualización: validación privada BCRA (02/10/2026)
+
+Antes de ejecutar, seguí `LEEME_BCRA_2026-10-02.md`: instalá las dependencias y aplicá `python manage.py migrate`. La suite vigente tiene **132 tests**. La integración agrega CUIL/CUIT, verificación interna y animación en la solicitud, conservando el login administrativo y el menú corregido.
+
 # CREDISYSTEM
 
 Aplicación web para gestión de créditos personales: registro y autenticación segura,
@@ -65,8 +81,8 @@ usa SQLite automáticamente — no hace falta tener MySQL instalado para desarro
 python manage.py test
 ```
 
-59 tests cubren los módulos funcionales y los flujos integrales principales del sistema.
-La base estable fue validada localmente con 59/59 tests OK.
+110 tests cubren los módulos funcionales, los flujos integrales, el login web administrativo y la validación BCRA.
+La versión actual incluye las correcciones de menú y login y está consolidada en una sola carpeta. Consultá CHECKLIST_CREDISYSTEM.md y LEEME_CORRECCIONES_2026-09-28.md.
 
 ### Generar recordatorios de pago (CU7)
 

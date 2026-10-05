@@ -32,22 +32,19 @@ class PerfilSeguroTests(APITestCase):
     def test_usuario_puede_actualizar_datos_permitidos(self):
         self.client.force_authenticate(self.usuario)
         respuesta = self.client.patch(self.url, {
-            "nombre": "  Facu  ",
-            "apellido": "Actualizado",
             "telefono": "+54 341 555 1234",
             "direccion": "  Calle Nueva 123  ",
         }, format="json")
         self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
         self.usuario.refresh_from_db()
-        self.assertEqual(self.usuario.nombre, "Facu")
+        self.assertEqual(self.usuario.nombre, "Facundo")
+        self.assertEqual(self.usuario.apellido, "Prueba")
         self.assertEqual(self.usuario.telefono, "+543415551234")
         self.assertEqual(self.usuario.direccion, "Calle Nueva 123")
 
     def test_campos_sensibles_no_se_modifican_desde_perfil(self):
         self.client.force_authenticate(self.usuario)
         respuesta = self.client.patch(self.url, {
-            "email": "intruso@test.com",
-            "documento": "99999999",
             "estado": Usuario.Estado.BLOQUEADO,
             "is_staff": True,
             "push_token": "token-alterado",
@@ -61,6 +58,43 @@ class PerfilSeguroTests(APITestCase):
         self.assertFalse(self.usuario.is_staff)
         self.assertIsNone(self.usuario.push_token)
         self.assertFalse(self.usuario.biometria_habilitada)
+
+    def test_identidad_no_se_puede_cambiar_mediante_api(self):
+        self.client.force_authenticate(self.usuario)
+        for campo, nuevo in {"nombre": "Otra persona", "apellido": "Otro", "documento": "99999999", "email": "otro@test.com"}.items():
+            with self.subTest(campo=campo):
+                anterior = getattr(self.usuario, campo)
+                respuesta = self.client.patch(self.url, {campo: nuevo}, format="json")
+                self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn(campo, respuesta.data)
+                self.usuario.refresh_from_db()
+                self.assertEqual(getattr(self.usuario, campo), anterior)
+
+    def test_intento_mixto_no_actualiza_parcialmente(self):
+        self.client.force_authenticate(self.usuario)
+        respuesta = self.client.patch(self.url, {"nombre": "Otra persona", "telefono": "3414444444"}, format="json")
+        self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.nombre, "Facundo")
+        self.assertEqual(self.usuario.telefono, "3415555555")
+
+    def test_identidad_sin_cambios_admite_actualizar_contacto(self):
+        self.client.force_authenticate(self.usuario)
+        respuesta = self.client.patch(self.url, {
+            "nombre": self.usuario.nombre, "apellido": self.usuario.apellido,
+            "documento": self.usuario.documento, "email": self.usuario.email,
+            "telefono": "3414444444",
+        }, format="json")
+        self.assertEqual(respuesta.status_code, status.HTTP_200_OK)
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.telefono, "3414444444")
+
+    def test_patch_sin_autenticacion_no_modifica_datos(self):
+        respuesta = self.client.patch(self.url, {"nombre": "Otra persona", "telefono": "3414444444"}, format="json")
+        self.assertEqual(respuesta.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.usuario.refresh_from_db()
+        self.assertEqual(self.usuario.nombre, "Facundo")
+        self.assertEqual(self.usuario.telefono, "3415555555")
 
     def test_telefono_invalido_es_rechazado(self):
         self.client.force_authenticate(self.usuario)

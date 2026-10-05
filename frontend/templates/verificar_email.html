@@ -6,7 +6,7 @@
   <div class="auth-card" style="text-align:center;">
     <span class="eyebrow" style="justify-content:center;">Un paso más</span>
     <h1>Verificá tu email</h1>
-    <p class="sub">Te mandamos un código de 6 dígitos por WhatsApp al teléfono registrado. Ingresalo para activar tu cuenta.<br><small>Cuenta: <b id="emailMostrado" style="color:var(--text);">tu email</b></small></p>
+    <p class="sub"><span id="instruccionEnvio">Ingresá el código de 6 dígitos que recibiste por correo para activar tu cuenta. Revisá también Spam.</span><br><small>Cuenta: <b id="emailMostrado" style="color:var(--text);">tu email</b></small></p>
 
     <div class="alert alert-error" id="alertaError" style="display:none; text-align:left;"></div>
     <div class="alert alert-success" id="alertaExito" style="display:none; text-align:left;"></div>
@@ -40,6 +40,14 @@
   const nextUrl = params.get('next');
   const email = params.get('email') || '';
   document.getElementById('emailMostrado').textContent = email || 'tu email';
+  const canal = params.get('canal');
+  const instrucciones = {
+    whatsapp: 'Ingresá el código de 6 dígitos enviado a tu WhatsApp para activar tu cuenta.',
+    consola: 'Modo de desarrollo: el código está en la consola del servidor. No se envió un correo real.',
+    no_enviado: 'Tu cuenta fue creada, pero no pudimos enviar el código. Solicitá un reenvío; no hace falta registrarte de nuevo.',
+  };
+  if (instrucciones[canal]) document.getElementById('instruccionEnvio').textContent = instrucciones[canal];
+
 
   // ---- Manejo de los 6 dígitos ----
   const digitos = Array.from(document.querySelectorAll('.otp-digit'));
@@ -104,43 +112,43 @@
     }
   });
 
-  // ---- Contador de reenvío ----
-  let segundos = 60;
+  // Un solo contador, también después de reintentar un envío fallido.
   const spanSegundos = document.getElementById('segundos');
   const contador = document.getElementById('contadorReenvio');
   const btnReenviar = document.getElementById('btnReenviar');
-
-  const intervalo = setInterval(() => {
-    segundos--;
+  let intervalo;
+  function iniciarContador(segundos) {
+    clearInterval(intervalo);
     spanSegundos.textContent = segundos;
-    if (segundos <= 0) {
-      clearInterval(intervalo);
-      contador.style.display = 'none';
-      btnReenviar.style.display = 'inline-flex';
-    }
-  }, 1000);
+    contador.style.display = segundos > 0 ? 'inline' : 'none';
+    btnReenviar.style.display = segundos > 0 ? 'none' : 'inline-flex';
+    if (segundos <= 0) return;
+    intervalo = setInterval(() => {
+      segundos--;
+      spanSegundos.textContent = segundos;
+      if (segundos <= 0) {
+        clearInterval(intervalo);
+        contador.style.display = 'none';
+        btnReenviar.style.display = 'inline-flex';
+      }
+    }, 1000);
+  }
+  iniciarContador(canal === 'no_enviado' ? 0 : 60);
 
   btnReenviar.addEventListener('click', async () => {
+    if (!email) {
+      alertaError.textContent = 'Falta el email de la cuenta. Volvé al registro.';
+      alertaError.style.display = 'flex';
+      return;
+    }
     btnReenviar.disabled = true;
     btnReenviar.textContent = 'Enviando…';
     try {
-      await API.reenviarCodigo(email);
-      alertaExito.textContent = 'Te reenviamos el código por WhatsApp.';
+      const respuesta = await API.reenviarCodigo(email);
+      alertaExito.textContent = respuesta.detail;
       alertaExito.style.display = 'flex';
       alertaError.style.display = 'none';
-      segundos = 60;
-      contador.style.display = 'inline';
-      btnReenviar.style.display = 'none';
-      spanSegundos.textContent = segundos;
-      const nuevoIntervalo = setInterval(() => {
-        segundos--;
-        spanSegundos.textContent = segundos;
-        if (segundos <= 0) {
-          clearInterval(nuevoIntervalo);
-          contador.style.display = 'none';
-          btnReenviar.style.display = 'inline-flex';
-        }
-      }, 1000);
+      iniciarContador(60);
     } catch (err) {
       alertaError.textContent = err.message || 'No pudimos reenviar el código. Probá en un rato.';
       alertaError.style.display = 'flex';
